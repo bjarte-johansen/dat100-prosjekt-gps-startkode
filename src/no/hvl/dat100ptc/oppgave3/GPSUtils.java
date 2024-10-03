@@ -24,27 +24,40 @@ public class GPSUtils {
 
 	public static double findMin(double[] da) {
 
-		double min;
-
-		// TODO 
-		throw new UnsupportedOperationException(TODO.method());
+		double min; 
+		
+		min = da[0];
+		
+		for (double d : da) {
+			if (d < min) {
+				min = d;
+			}
+		}
+		
+		return min;
 		
 	}
 
 	public static double[] getLatitudes(GPSPoint[] gpspoints) {
-
-		throw new UnsupportedOperationException(TODO.method());
+		int n = gpspoints.length;				
+		double[] result = new double[n];
 		
-		// TODO
+		for(int i=0; i<n; i++) {
+			result[i] = gpspoints[i].getLatitude();
+		}
+		
+		return result;
 	}
 
 	public static double[] getLongitudes(GPSPoint[] gpspoints) {
-
+		int n = gpspoints.length;				
+		double[] result = new double[n];
 		
-		throw new UnsupportedOperationException(TODO.method());
+		for(int i=0; i<n; i++) {
+			result[i] = gpspoints[i].getLongitude();
+		}
 		
-		// TODO 
-
+		return result;
 	}
 
 	private static final int R = 6371000; // jordens radius
@@ -53,63 +66,85 @@ public class GPSUtils {
 
 		double d;
 		double latitude1, longitude1, latitude2, longitude2;
-
-		throw new UnsupportedOperationException(TODO.method());
-
-		// TODO 
+		
+		latitude1 = Math.toRadians(gpspoint1.getLatitude());
+		latitude2 = Math.toRadians(gpspoint2.getLatitude());
+		longitude1 = Math.toRadians(gpspoint1.getLongitude());
+		longitude2 = Math.toRadians(gpspoint2.getLongitude());
+		
+		double deltaPhi = (latitude2 - latitude1);
+		double deltaDelta = (longitude2 - longitude1);
+		
+		double a = compute_a(latitude1,	latitude2, deltaPhi, deltaDelta);
+		double c = compute_c(a);		
+		d = R * c;
+		
+		return d;
 	}
 	
 	private static double compute_a(double phi1, double phi2, double deltaphi, double deltadelta) {
-	
-		throw new UnsupportedOperationException(TODO.method());
+		double d1 = Math.sin(deltaphi / 2);
+		double d2 = Math.sin(deltadelta / 2);
 		
-		// TODO 
-
+		return (d1 * d1) + Math.cos(phi1) * Math.cos(phi2) * (d2 * d2);
 	}
 
 	private static double compute_c(double a) {
-
-		
-		throw new UnsupportedOperationException(TODO.method());
-		
-		
-		// TODO 
-
+		return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 	}
 
+	public static long timeBetweenPoints(GPSPoint p1, GPSPoint p2) {
+		return Math.abs(p2.getTime() - p1.getTime());
+	}
 	
-	public static double speed(GPSPoint gpspoint1, GPSPoint gpspoint2) {
-
-		int secs;
-		double speed;
+	public static double speed(GPSPoint p1, GPSPoint p2) {
+		double dist = distance(p1, p2);	
+		if(dist < 0) {
+			throw new RuntimeException("blarh");
+		}
 		
-		throw new UnsupportedOperationException(TODO.method());
+		long secs = timeBetweenPoints(p1, p2);		
 		
-		// TODO
-
+		if(secs == 0) {
+			throw new IllegalArgumentException("time between gpspoints must be non-zero");
+		}
+		
+		return dist / secs;
 	}
 
+	public static String formatIntTimeDigits(int digits) {
+		String s = String.valueOf(digits);
+		if(digits < 10)
+			s = "0" + s;
+		return s;
+	}
+	
 	public static String formatTime(int secs) {
-
-		String timestr;
 		String TIMESEP = ":";
+		
+		int h = secs / 3600;
+		int m = (secs % 3600) / 60;
+		int s = (secs % 60);
 
-		throw new UnsupportedOperationException(TODO.method());
-		
-		// TODO 
-		
+		return "  " + formatIntTimeDigits(h) + TIMESEP + formatIntTimeDigits(m) + TIMESEP + formatIntTimeDigits(s);		
 	}
 	
 	private static int TEXTWIDTH = 10;
 
 	public static String formatDouble(double d) {
-
-		String str;
-
+		//return String.format("%10.2f", d);
 		
-		throw new UnsupportedOperationException(TODO.method());
+		int a = (int) Math.round(d * 100);
+		int intPart = a / 100;
+		int fracPart = a % 100;
 		
-		// TODO
-		
+		String result = null;
+		if(fracPart < 10) {
+			result = intPart + ".0" + fracPart;
+		}else {
+			result = intPart + "." + fracPart;
+		}
+		result = " ".repeat(TEXTWIDTH - result.length()) + result;
+		return result;
 	}
 }

@@ -43,10 +43,7 @@ public class CycleComputer extends EasyGraphics {
 		launch(args);
 	}
 
-	public void run() {
-
-		// throw new UnsupportedOperationException(TODO.method());
-		
+	public void run() {		
 		N = gpspoints.length; // number of gps points
 
 		minlon = GPSUtils.findMin(GPSUtils.getLongitudes(gpspoints));

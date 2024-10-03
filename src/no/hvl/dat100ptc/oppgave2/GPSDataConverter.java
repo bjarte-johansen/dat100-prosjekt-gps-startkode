@@ -8,23 +8,22 @@ public class GPSDataConverter {
 	
 	private static int TIME_STARTINDEX = 11; 
 
-	public static int toSeconds(String timestr) {
-		
-		int secs;
-		int hr, min, sec;
-		
-		// TODO
-		throw new UnsupportedOperationException(TODO.method());
-		
+	public static int toSeconds(String timeStr) {	
+    	String h = timeStr.substring(11, 11 + 2);
+    	String m = timeStr.substring(14, 14 + 2);
+    	String s = timeStr.substring(17, 17 + 2);   	
+    	
+    	long time = (long)(Integer.parseInt(h) * 60 * 60 
+    			+ Integer.parseInt(m) * 60
+    			+ Integer.parseInt(s));
+    	
+    	return (int) time;
 	}
 
 	public static GPSPoint convert(String timeStr, String latitudeStr, String longitudeStr, String elevationStr) {
 
-		GPSPoint gpspoint;
-
-		// TODO 
-		throw new UnsupportedOperationException(TODO.method());
-		
+		GPSPoint gpspoint = GPSPoint.convert(timeStr,  latitudeStr, longitudeStr, elevationStr);
+		return gpspoint;
 	}
 	
 }
