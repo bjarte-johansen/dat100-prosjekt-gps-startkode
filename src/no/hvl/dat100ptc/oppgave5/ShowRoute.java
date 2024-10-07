@@ -7,8 +7,11 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.util.Arrays;
 
+import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
 
 import easygraphics.EasyGraphics;
 import no.hvl.dat100ptc.*;
@@ -140,6 +143,7 @@ class GPSRouteRenderer{
 		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 2);
 		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 1);
 	}
+	
 	public void showRouteMap(Graphics2D ctx, int w, int h) {
 		int n = gpspoints.length; 
 		
@@ -174,24 +178,10 @@ class GPSRouteRenderer{
 		ctx.setColor(getRouteSegmentColor(getGPSPoint(-2), getGPSPoint(-1)));			
 		GraphicUtils.fillCircle(ctx, next.x,  next.y, 3);			
 	}
+	
 	public void replayRoute(Graphics2D ctx, int w, int h) {
-		int n = gpspoints.length; 
-		
-		int positionIndicatorRadius = 3;
-		Color positionIndiciatorColor = ColorUtils.niceBlue;
-		
-		double[] distanceValues = gpscomputer.getDistanceValues();		
-		double[] speedValues = gpscomputer.getSpeedValues();
-		double speed;
-		
-		ctx.setColor(positionIndiciatorColor);
-		
-		double speedRange[] = DoubleArray.of(speedValues).minMax();
-		double distanceRange[] = DoubleArray.of(distanceValues).minMax();
-				
-		for(int i=1; i<n; i++) {	
-		}		
-	}	
+	}
+	
 	public void showStatistics(Graphics2D ctx, int w, int h) {
 		int TEXTDISTANCE = 20;
 		
@@ -212,22 +202,24 @@ class GPSRouteRenderer{
 
 public class ShowRoute{	
 	private static int MARGIN = 16;
-	private static int MAPXSIZE = 900;
-	private static int MAPYSIZE = 900;
 
 	public static void main(String[] args) {
 		var renderer = new GPSRouteRenderer();
 		
-        JFrame frame = new JFrame("GPS Route renderer");
-        frame.setSize(940, 940);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
+		//var container = new JPanel();
+        //container.setBorder(new EmptyBorder(MARGIN, MARGIN, MARGIN, MARGIN));
         
+		// create custom panel with render callback
+		// it will resize to parent container width
         var panel = new CustomPanelRenderer(600, 600, renderer::render);
         panel.setAntialiasing(true);
-        panel.setDoubleBuffered(true);        
-        frame.add(panel);     
+        panel.setDoubleBuffered(true);
+        //container.add(panel);
         
+        JFrame frame = new JFrame("GPS Route renderer");
+        frame.setSize(940, 940);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
+        frame.add(panel);     
         frame.setVisible(true);        
 	}
 }
