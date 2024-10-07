@@ -27,13 +27,21 @@ public class DoubleArray{
 		return new DoubleArray(data);
 	}
 	
+	public double getValue(int index) {
+		return arr[index];
+	}
+	public void setValue(int index, double val) {
+		arr[index] = val;
+	}
+	
 	public int size() {
 		return arr.length;
 	}
-	
-	public double[] getDataReference() {
+	/*
+	public double[] getArrayReference() {
 		return arr;
 	}
+	*/
 	public double[] toArray() {
 		return Arrays.copyOf(arr, arr.length);
 	}
@@ -111,6 +119,6 @@ public class DoubleArray{
 			throw new IllegalArgumentException("array must be non-null and non-empty");
 		}
 		
-		return sum() / arr.length;
+		return sum() / size();
 	}	
 }

@@ -3,6 +3,8 @@ package no.hvl.dat100ptc.oppgave3;
 import static java.lang.Math.*;
 
 import no.hvl.dat100ptc.oppgave1.GPSPoint;
+import no.hvl.dat100ptc.MapGpsPointPairToDouble;
+import no.hvl.dat100ptc.MapGpsPointToDouble;
 import no.hvl.dat100ptc.TODO;
 
 public class GPSUtils {
@@ -61,6 +63,33 @@ public class GPSUtils {
 	}
 
 	private static final int R = 6371000; // jordens radius
+	
+	public static double[] mapGpsPointToDouble(GPSPoint[] gpspoints, MapGpsPointToDouble callback) {
+		int n = gpspoints.length;
+		if(n == 0) {
+			throw new IllegalArgumentException("gpspoints must have at least 1 elements");
+		}
+		
+		var result = new double[n];				
+		for(int i=0; i<n; i++) {
+			result[i] = callback.apply(gpspoints[i]);
+		}
+		
+		return result;
+	}	
+	public static double[] mapGpsPointPairsToDouble(GPSPoint[] gpspoints, MapGpsPointPairToDouble callback) {
+		int n = gpspoints.length - 1;
+		if(n + 1 < 2) {
+			throw new IllegalArgumentException("gpspoints must have at least 2 elements");
+		}
+		
+		var result = new double[n];				
+		for(int i=0; i<n; i++) {		
+			result[i] = callback.apply(gpspoints[i], gpspoints[i + 1]);
+		}
+		
+		return result;
+	}
 
 	public static double distance(GPSPoint gpspoint1, GPSPoint gpspoint2) {
 

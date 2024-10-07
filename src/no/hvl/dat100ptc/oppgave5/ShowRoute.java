@@ -20,31 +20,96 @@ import no.hvl.dat100ptc.oppgave3.GPSUtils;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
 
-class GraphicUtils{
-	public static void drawCircle(Graphics2D ctx, int x, int y, int radius) {
-		ctx.drawOval(x - radius, y - radius, radius * 2, radius * 2);
-	}
-	public static void fillCircle(Graphics2D ctx, int x, int y, int radius) {
-		ctx.fillOval(x - radius, y - radius, radius * 2, radius * 2);
-	}	
-}
+
 
 class GPSUI{
 	public class Route{
+		// uphill / downhill line (also used for up/down waypoint)
+		static Color routeDownhillColor = new Color(0,200,0);
+		static Color routeUphillColor = new Color(200,0,0);
+		
 		// endpoint
 		static Color endpointIndicatorColor = new Color(100,100,100,200);
-		static int endpointIndicatorRadius = 16;
+		static int endpointIndicatorSize = 16;
 		
 		// waypoint
-		static int wapointIndicatorRadius = 4;
+		static int wapointIndicatorSize = 4;
+		static int waypointIndicatorType = 0;
 		
 		// progress
 		static Color progressIndicatorColor = ColorUtils.niceBlue;
-		static int progressIndicatorRadius = 6;		
+		static int progressIndicatorSize = 7;		
 	}
 }
 
+
+/*
+ * 
+ */
+
 class GPSRouteRenderer{
+	class AnimatedProgressIndicator{
+		private GPSPoint[] gpspoints;
+		private GPSComputer gpscomputer;
+				
+		private double pos;
+		private double delta;
+		
+		//private double totalTime;
+		
+		private IntPoint2D screenStart;
+		private IntPoint2D screenEnd;
+		
+		private int segmentIndex;
+		//private double segmentSpeed;
+		
+		public double animationSpeed = 20.0;
+				
+		AnimatedProgressIndicator(GPSComputer comp){
+			gpscomputer = comp;
+			gpspoints = comp.getGPSPoints();
+			
+			segmentIndex = 0;
+			
+			recalc();
+		}
+		
+		void recalc() {
+			segmentIndex = segmentIndex % (gpspoints.length - 1);
+			
+			GPSPoint p0 = gpspoints[segmentIndex];
+			GPSPoint p1 = gpspoints[segmentIndex + 1];
+			
+			double distance = GPSUtils.distance(p0, p1);
+			double speed = GPSUtils.speed(p0, p1);
+			
+			screenStart = gpsPointToDrawSpace(p0);
+			screenEnd = gpsPointToDrawSpace(p1);
+			
+			pos = 0.0;
+			delta = speed / distance;			
+		}
+		
+		void advance(double elapsedFrameTime) {			
+			pos += (delta * elapsedFrameTime * animationSpeed);
+			
+			if(pos > 1.0) {
+				segmentIndex++;
+				recalc();
+			}
+		}
+		
+		void render(Graphics2D ctx, int w, int h) {
+			IntPoint2D out = new IntPoint2D(
+				LinearInterpolation.interpolate(pos, screenStart.x, screenEnd.x),
+				LinearInterpolation.interpolate(pos, screenStart.y, screenEnd.y)
+				);
+		
+			ctx.setColor(GPSUI.Route.progressIndicatorColor);
+			GraphicsUtils.fillCircle(ctx, out.x, out.y, GPSUI.Route.progressIndicatorSize);
+		}
+	}
+	
 	private static int MARGIN = 16;
 	private static int MAPXSIZE = 800;
 	private static int MAPYSIZE = 800;
@@ -58,6 +123,10 @@ class GPSRouteRenderer{
 	
 	private IntRectangle R; 
 	
+	private AnimatedProgressIndicator animatedProgressIndicator;
+	
+	private ElapsedTimer frameTimer = new ElapsedTimer();
+	
 	public GPSRouteRenderer() {
 
 		//String filename = JOptionPane.showInputDialog("GPS data filnavn: ");
@@ -65,8 +134,12 @@ class GPSRouteRenderer{
 		gpscomputer = new GPSComputer(filename);
 
 		gpspoints = gpscomputer.getGPSPoints();
-		
+			
 		init();
+		
+		animatedProgressIndicator = new AnimatedProgressIndicator(gpscomputer);		
+		
+		frameTimer.restart();
 	}
 	
 	public GPSPoint getGPSPoint(int index) {
@@ -88,62 +161,65 @@ class GPSRouteRenderer{
 		maxlat = GPSUtils.findMax(GPSUtils.getLatitudes(gpspoints));
 		
 		xstep = scale(MAPXSIZE, minlon, maxlon);
-		ystep = scale(MAPYSIZE, minlat, maxlat);		
+		ystep = scale(MAPYSIZE, minlat, maxlat);
+		
+		// update R (our bounds)
+		R = new IntRectangle(MARGIN, MARGIN, MAPXSIZE, MAPYSIZE);		
 	}
-	
+
 	public void render(Graphics2D ctx, int w, int h) {
+		frameTimer.update();
+		
 		ctx.setColor(ColorUtils.white);
 		ctx.fillRect(0, 0, w, h);
 		
 		int n = gpspoints.length - 1;
 		if(n == 0) { return; }		
 		
-		// update R (our bounds)
-		R = new IntRectangle(MARGIN, MARGIN, MAPXSIZE, MAPYSIZE);
-		
 		showRouteMap(ctx, w, h);
 		
 		showRouteEndPoints(ctx, w, h);			
 		
 		showStatistics(ctx, w, h);
-		
-		/*
-		replayRoute(ctx, w, h);
-		*/
+
+		animatedProgressIndicator.render(ctx, 0, 0);
+		animatedProgressIndicator.advance(frameTimer.elapsedTime());
 	}
-	
-	static Color routeDownhillColor = new Color(0,200,0);
-	static Color routeUphillColor = new Color(200,0,0);	
-	
+
 	public static Color getRouteSegmentColor(GPSPoint a, GPSPoint b) {
-		return (a.getElevation() < b.getElevation()) ? routeUphillColor : routeDownhillColor;
+		return (a.getElevation() < b.getElevation()) ? GPSUI.Route.routeUphillColor : GPSUI.Route.routeDownhillColor;
 	}
-	
+
 	public IntPoint2D gpsPointToDrawSpace(GPSPoint p) {
 		return new IntPoint2D(
 			R.getMinX() + (p.getLongitude() - minlon) * xstep,					
 			R.getMaxY() - (p.getLatitude() - minlat) * ystep
 			);		
 	}
-	
+
+	public Color ColorFadeOpacity(Color c, int percentAsByte) {
+		return new Color(c.getRed(), c.getGreen(), c.getBlue(), (c.getAlpha() * percentAsByte) >> 8);
+	}
+
 	public void showRouteEndPoints(Graphics2D ctx, int w, int h) {		
 		IntPoint2D p;
 		
-		// render endpoints		
-		ctx.setColor(GPSUI.Route.endpointIndicatorColor);
+		// render endpoints
 		ctx.setStroke(new BasicStroke(3));
-		
-		p = gpsPointToDrawSpace(gpspoints[0]);	
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius);
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 2);		
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 1);		
+				
+		p = gpsPointToDrawSpace(gpspoints[0]);
+		ctx.setColor(GPSUI.Route.endpointIndicatorColor);		
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize);			
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize / 3 * 2);		
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize / 3 * 1);		
 			
-		p = gpsPointToDrawSpace(gpspoints[gpspoints.length - 1]);	
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius);
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 2);
-		GraphicUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorRadius / 3 * 1);
+		p = gpsPointToDrawSpace(gpspoints[gpspoints.length - 1]);
+		ctx.setColor(GPSUI.Route.endpointIndicatorColor);		
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize);		
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize / 3 * 2);		
+		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize / 3 * 1);
 	}
-	
+
 	public void showRouteMap(Graphics2D ctx, int w, int h) {
 		int n = gpspoints.length; 
 		
@@ -170,18 +246,18 @@ class GPSRouteRenderer{
 			
 			next = gpsPointToDrawSpace(p0);
 			ctx.setColor(getRouteSegmentColor(p0, p1));			
-			GraphicUtils.fillCircle(ctx, next.x,  next.y, GPSUI.Route.wapointIndicatorRadius);
+			GraphicsUtils.fillCircle(ctx, next.x,  next.y, GPSUI.Route.wapointIndicatorSize);
 		}	
 		
 		// render last point
 		next = gpsPointToDrawSpace(getGPSPoint(-1));
 		ctx.setColor(getRouteSegmentColor(getGPSPoint(-2), getGPSPoint(-1)));			
-		GraphicUtils.fillCircle(ctx, next.x,  next.y, 3);			
+		GraphicsUtils.fillCircle(ctx, next.x,  next.y, 3);			
 	}
 	
 	public void replayRoute(Graphics2D ctx, int w, int h) {
 	}
-	
+
 	public void showStatistics(Graphics2D ctx, int w, int h) {
 		int TEXTDISTANCE = 20;
 		

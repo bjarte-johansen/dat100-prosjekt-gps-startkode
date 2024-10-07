@@ -1,5 +1,6 @@
 package no.hvl.dat100ptc.oppgave4;
 
+import no.hvl.dat100ptc.*;
 import no.hvl.dat100ptc.oppgave1.GPSPoint;
 import no.hvl.dat100ptc.oppgave2.GPSData;
 import no.hvl.dat100ptc.oppgave2.GPSDataConverter;
@@ -14,6 +15,13 @@ public class GPSComputer {
 	
 	private GPSPoint[] gpspoints;
 	
+	double[] speedValues_;
+	double[] distanceValues_;
+	double[] elevationValues_;
+	
+	double[] speedRange_;
+	double[] elevationRange_;
+	
 	public GPSComputer(String filename) {
 
 		GPSData gpsdata = GPSDataFileReader.readGPSFile(filename);
@@ -23,6 +31,13 @@ public class GPSComputer {
 
 	public GPSComputer(GPSPoint[] gpspoints) {
 		this.gpspoints = gpspoints;
+		
+		speedValues_ = computeSpeedValues();
+		distanceValues_ = computeDistanceValues();
+		elevationValues_ = computeElevationValues();
+		
+		speedRange_ = DoubleArray.of(speedValues_).minMax();
+		elevationRange_ = DoubleArray.of(speedValues_).minMax();
 	}
 	
 	public GPSPoint[] getGPSPoints() {
@@ -65,79 +80,49 @@ public class GPSComputer {
 	}
 		
 
+	private double[] computeSpeedValues() {
+		return GPSUtils.mapGpsPointPairsToDouble(gpspoints, GPSUtils::speed);
+	}
+	
+	private double[] computeDistanceValues() {
+		return GPSUtils.mapGpsPointPairsToDouble(gpspoints, GPSUtils::distance);
+	}		
+	
+	private double[] computeElevationValues() {
+		return GPSUtils.mapGpsPointToDouble(gpspoints, GPSPoint::getElevation);
+	}
+
 	public double[] speeds() {
-		int n = gpspoints.length - 1;
-		double[] speeds = new double[n];
-	
-		for(int i=0; i<n; i++) {
-			speeds[i] = GPSUtils.speed(gpspoints[i], gpspoints[i + 1]);
-		}
-		
-		//System.out.printf("Speeds: %s, count: %d\n", Arrays.toString(speeds), n);
-		
-		return speeds;
-	}
-	
-	public double[] getSpeedValues() {
-		return speeds();
-	}
-	
-	public double[] getDistanceValues() {
-		int n = gpspoints.length - 1;
-		double[] result = new double[n];
-	
-		for(int i=0; i<n; i++) {
-			result[i] = GPSUtils.distance(gpspoints[i], gpspoints[i + 1]);
-		}
-		return result;
+		return speedValues_;
 	}	
+	public double[] getSpeedValues() {
+		return speedValues_;
+	}
+	
+
+	public double[] getDistanceValues() {
+		return distanceValues_;		
+	}
 	
 	public double findMax(double[] arr) {
-		if(arr == null || arr.length == 0) {
-			throw new IllegalArgumentException("array must be non-null and non-empty");
-		}
-		
-		double found = arr[0];
-		int n = arr.length;
-		
-		for(int i = 1; i < n; i++) {
-			if(arr[i] > found) {
-				found = arr[i];
-			}
-		}
-		return found;
+		return DoubleArray.of(arr).max();
 	}
 	public double findAverage(double[] arr) {
-		if(arr == null || arr.length == 0) {
-			throw new IllegalArgumentException("array must be non-null and non-empty");
-		}
-		
-		int n = arr.length;
-		double sum = 0.0;
-		
-		for(int i = 0; i < n; i++) {
-			sum += arr[i];
-			System.out.println(arr[i]);
-		}
-		System.out.printf("%.2f / %d\n", sum, n);
-		return sum / n;
+		return DoubleArray.of(arr).average();		
 	}	
-	
+
+	public double minSpeed() {
+		return speedRange_[0];
+	}	
 	public double maxSpeed() {
-		var speedData = speeds();
-		return findMax(speedData);
-		/*
-		double maxSpeed = 0;
-		double speed;
-		
-		int n = gpspoints.length - 1;
-		for(int i=0; i<n; i++) {
-			speed = GPSUtils.speed(gpspoints[i], gpspoints[i + 1]);
-			maxSpeed = Math.max(speed, maxSpeed);
-		}	
+		return speedRange_[1];
+	}
 	
-		return maxSpeed;
-		*/
+	public double minElevation() {
+		return elevationRange_[0];
+	}		
+	public double maxElevation() {
+		return elevationRange_[1];
 	}
 
 	public double averageSpeed() {

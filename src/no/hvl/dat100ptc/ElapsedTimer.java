@@ -27,9 +27,12 @@ public class ElapsedTimer{
 		return elapsedMillis_;
 	}
 	
-	public long elapsedTime() {
+	public long elapsedMillis() {
 		return elapsedMillis_;
 	}
+	public double elapsedTime() {
+		return 1.0 / elapsedMillis_;
+	}	
 	
 	public double unfilteredFramesPerSecond() {
 		if(elapsedMillis_ == 0) {
