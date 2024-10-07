@@ -21,13 +21,39 @@ import java.awt.image.BufferedImage;
 class SpeedProfileRenderer {	
 	public static int MARGIN = 4;
 
-	public GPSComputer gpscomputer;
-	
-	private final static Color red = new Color(255,0,0);
-	private final static Color green = new Color(0,255,0);
-	private final static Color blue = new Color(0,0,255);
-	
+	public GPSComputer gpscomputer;	
 	private IntRectangle R;
+	
+	class AnimatedGraphProgressIndicator{
+		private double position_;
+		public Color color;
+		
+		AnimatedGraphProgressIndicator(){
+			position_ = 0;
+		}
+		
+		void setTrackingPosition(double val) {
+			position_ = val;
+		}
+		double getTrackingPosition() {
+			return position_;
+		}
+		
+		void setTrackingColor(Color val) {
+			color = val;
+		}
+		Color getTrackingColor() {
+			return color;
+		}			
+		
+		public void render(Graphics2D ctx, int w, int h) {
+			ctx.setColor(color);
+			ctx.setStroke(new BasicStroke(GPSUI.SpeedGraph.progressIndicatorSize));
+			ctx.drawLine(R.getMinX(), R.getMinY(), R.getMaxX(), R.getMaxY());
+		}
+	}
+	
+	//public AnimatedGraphProgressIndicator[] animatedProgressIndicator = animatedProgressIndicator;
 	
 	public SpeedProfileRenderer() {
 		//String filename = JOptionPane.showInputDialog("GPS data filnavn: ");
@@ -51,10 +77,14 @@ class SpeedProfileRenderer {
 		renderAverageSpeed(ctx, w, h);
 	}
 	
-	public void renderGraph(Graphics2D ctx, int w, int h) {	
+	public double getGraphFloatValueAt(double pos) {
 		double[] speedValues = gpscomputer.getSpeedValues();
-		double yFactor = (1.0 / gpscomputer.getMaxSpeed()) * 0.9;				
+		double yFactor = R.getHeight() * (1.0 / gpscomputer.getMaxSpeed()) * 0.9;
 		
+		return LinearInterpolation.interpolate(pos, speedValues, speedValues.length) * yFactor;		
+	}
+	
+	public void renderGraph(Graphics2D ctx, int w, int h) {	
 		double val;		
 		double pos = 0.0;
 		double delta = 1.0 / R.width;
@@ -64,9 +94,7 @@ class SpeedProfileRenderer {
         ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
 	
 		for(int i=0; i<R.width; i++) {
-			val = LinearInterpolation.interpolate(pos, speedValues, speedValues.length);
-			val *= R.getHeight();
-			val *= yFactor;
+			val = getGraphFloatValueAt(pos);
 			
 			int x = R.getMinX() + i;
 			int y = R.getMaxY() - (int) val;
@@ -78,24 +106,20 @@ class SpeedProfileRenderer {
 	}
 	
 	public void renderAverageSpeed(Graphics2D ctx, int w, int h) {
-		double yFactor = (1.0 / gpscomputer.getMaxSpeed()) * 0.9;			
+		double yFactor = R.getHeight() * (1.0 / gpscomputer.getMaxSpeed()) * 0.9;		
 
 		ctx.setStroke(new BasicStroke(GPSUI.SpeedGraph.averageSpeedIndicatorSize));
 		ctx.setColor(GPSUI.SpeedGraph.averageSpeedIndicatorColor);
 		
-		double val = gpscomputer.getAverageSpeed();
-		val *= R.getHeight();
-		val *= yFactor;
-
-		int y = R.getMaxY() - (int)(val);
-		
+		double val = gpscomputer.getAverageSpeed() * yFactor;
+		int y = R.getMaxY() - (int)(val);		
 		ctx.drawLine(R.getMinX(), y, R.getMaxX(), y);	
 	}
 }
 
 public class ShowSpeed {	
 	public ShowSpeed() {
-		var renderer = new SpeedProfileRenderer();
+		var speedRenderer = new SpeedProfileRenderer();
 		var routeRenderer = new GPSRouteRenderer();
 		
         JFrame frame = new JFrame("Double Buffering Example");		
@@ -117,20 +141,26 @@ public class ShowSpeed {
 		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 		
 
-        var panel1 = new CustomPanelRenderer(600, 150, renderer::render);
+        var panel1 = new CustomPanelRenderer(600, 100, speedRenderer::render);
         panel1.addComponentListener(resizeAdapter);        
         container.add(panel1);
         
         container.add(Box.createVerticalStrut(4));
         
-        var panel2 = new CustomPanelRenderer(600, 150, renderer::render);
+        var panel2 = new CustomPanelRenderer(600, 100, speedRenderer::render);
         panel2.addComponentListener(resizeAdapter);
         panel2.setMaximumSize(new Dimension(300, 150));
         container.add(panel2);
         
         container.add(Box.createVerticalStrut(4));
         
-        var panel3 = new CustomPanelRenderer(900, 900, routeRenderer::render);
+        var panel3 = new CustomPanelRenderer(900, 900, (ctx, w, h) -> {
+        	for(int i=0; i<routeRenderer.animatedProgressIndicator.length;i++) {
+        		//speedRenderer.ani
+        	}
+        	routeRenderer.render(ctx, w, h);
+        	//routeRenderer::render	
+        });
         container.add(panel3);     
         
         frame.add(container);

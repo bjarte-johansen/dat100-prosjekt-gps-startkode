@@ -46,10 +46,16 @@ class GPSUI{
 		
 		static int averageSpeedIndicatorSize = 2;
 		static Color averageSpeedIndicatorColor = new Color(255,50,50,200);
+		
+		static int progressIndicatorSize = 2;
+		static Color progressIndicatorColor = new Color(255,255,255,220);
 	}
 	
 	public class ElevationGraph{
-		static Color foregroundColor = ColorUtils.niceBlue;		
+		static Color foregroundColor = GraphicsUtils.copyColor(ColorUtils.niceBlue);
+		
+		static int progressIndicatorSize = SpeedGraph.progressIndicatorSize;
+		static Color progressIndicatorColor = GraphicsUtils.copyColor(SpeedGraph.progressIndicatorColor);		
 	}	
 }
 
@@ -76,7 +82,8 @@ class GPSRouteRenderer{
 		private double currentDistance;
 		private double segmentDistance;
 		
-		public double animationSpeed = 40.0;
+		public double animationSpeed = 70.0;
+		public Color indicatorColor = GraphicsUtils.copyColor(ColorUtils.niceBlue);
 				
 		AnimatedProgressIndicator(GPSComputer comp){
 			gpscomputer = comp;
@@ -117,13 +124,11 @@ class GPSRouteRenderer{
 		}
 		
 		void render(Graphics2D ctx, int w, int h) {
-			IntPoint2D out = new IntPoint2D(
-				LinearInterpolation.interpolate(pos, screenStart.x, screenEnd.x),
-				LinearInterpolation.interpolate(pos, screenStart.y, screenEnd.y)
-				);
+			int x = (int) LinearInterpolation.interpolate(pos, screenStart.x, screenEnd.x);
+			int y = (int) LinearInterpolation.interpolate(pos, screenStart.y, screenEnd.y);
 		
-			ctx.setColor(GPSUI.Route.progressIndicatorColor);
-			GraphicsUtils.fillCircle(ctx, out.x, out.y, GPSUI.Route.progressIndicatorSize);
+			ctx.setColor(indicatorColor);
+			GraphicsUtils.fillCircle(ctx, x, y, GPSUI.Route.progressIndicatorSize);
 		}
 		
 		double getProgressTrackingPosition() {
@@ -144,7 +149,7 @@ class GPSRouteRenderer{
 	
 	private IntRectangle R; 
 	
-	private AnimatedProgressIndicator animatedProgressIndicator;
+	public AnimatedProgressIndicator[] animatedProgressIndicator;
 	
 	private ElapsedTimer frameTimer = new ElapsedTimer();
 	
@@ -158,7 +163,11 @@ class GPSRouteRenderer{
 			
 		init();
 		
-		animatedProgressIndicator = new AnimatedProgressIndicator(gpscomputer);		
+		animatedProgressIndicator = new AnimatedProgressIndicator[3];//(gpscomputer);
+		for(int i=0; i<animatedProgressIndicator.length;i++) {
+			animatedProgressIndicator[i] = new AnimatedProgressIndicator(gpscomputer);
+			animatedProgressIndicator[i].animationSpeed = 30.0 + Math.random() * 50.0;
+		}
 		
 		frameTimer.restart();
 	}
@@ -203,10 +212,20 @@ class GPSRouteRenderer{
 		
 		showStatistics(ctx, w, h);
 
-		animatedProgressIndicator.render(ctx, 0, 0);
-		animatedProgressIndicator.advance(frameTimer.elapsedTime());
+		for(int i=0; i<animatedProgressIndicator.length;i++) {		
+			animatedProgressIndicator[i].render(ctx, 0, 0);
+			animatedProgressIndicator[i].advance(frameTimer.elapsedTime());
+		}
 		
 		System.out.println(frameTimer.elapsedTime());
+	}
+	
+	public double[] getProgressTrackingPosition() {
+		var result = new double[animatedProgressIndicator.length];
+		for(int i=0; i<animatedProgressIndicator.length;i++) {	
+			result[i] = animatedProgressIndicator[i].getProgressTrackingPosition();
+		}
+		return result;
 	}
 
 	public static Color getRouteSegmentColor(GPSPoint a, GPSPoint b) {
