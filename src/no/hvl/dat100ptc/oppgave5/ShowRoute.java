@@ -40,6 +40,17 @@ class GPSUI{
 		static Color progressIndicatorColor = ColorUtils.niceBlue;
 		static int progressIndicatorSize = 7;		
 	}
+	
+	public class SpeedGraph{
+		static Color foregroundColor = ColorUtils.niceBlue;
+		
+		static int averageSpeedIndicatorSize = 2;
+		static Color averageSpeedIndicatorColor = new Color(255,50,50,200);
+	}
+	
+	public class ElevationGraph{
+		static Color foregroundColor = ColorUtils.niceBlue;		
+	}	
 }
 
 
@@ -61,9 +72,11 @@ class GPSRouteRenderer{
 		private IntPoint2D screenEnd;
 		
 		private int segmentIndex;
-		//private double segmentSpeed;
+
+		private double currentDistance;
+		private double segmentDistance;
 		
-		public double animationSpeed = 20.0;
+		public double animationSpeed = 40.0;
 				
 		AnimatedProgressIndicator(GPSComputer comp){
 			gpscomputer = comp;
@@ -75,25 +88,29 @@ class GPSRouteRenderer{
 		}
 		
 		void recalc() {
-			segmentIndex = segmentIndex % (gpspoints.length - 1);
+			if(segmentIndex + 1 >= gpspoints.length) {
+				segmentIndex = 0;
+				currentDistance = 0.0;
+			}
 			
 			GPSPoint p0 = gpspoints[segmentIndex];
 			GPSPoint p1 = gpspoints[segmentIndex + 1];
 			
-			double distance = GPSUtils.distance(p0, p1);
+			segmentDistance = GPSUtils.distance(p0, p1);
 			double speed = GPSUtils.speed(p0, p1);
 			
 			screenStart = gpsPointToDrawSpace(p0);
 			screenEnd = gpsPointToDrawSpace(p1);
 			
 			pos = 0.0;
-			delta = speed / distance;			
+			delta = speed / segmentDistance;			
 		}
 		
 		void advance(double elapsedFrameTime) {			
 			pos += (delta * elapsedFrameTime * animationSpeed);
 			
 			if(pos > 1.0) {
+				currentDistance += segmentDistance;
 				segmentIndex++;
 				recalc();
 			}
@@ -108,11 +125,15 @@ class GPSRouteRenderer{
 			ctx.setColor(GPSUI.Route.progressIndicatorColor);
 			GraphicsUtils.fillCircle(ctx, out.x, out.y, GPSUI.Route.progressIndicatorSize);
 		}
+		
+		double getProgressTrackingPosition() {
+			return (currentDistance + pos * segmentDistance) / gpscomputer.totalDistance();
+		}
 	}
 	
 	private static int MARGIN = 16;
-	private static int MAPXSIZE = 800;
-	private static int MAPYSIZE = 800;
+	private static int MAPXSIZE = 600;
+	private static int MAPYSIZE = 600;
 
 	private GPSPoint[] gpspoints;
 	private GPSComputer gpscomputer;
@@ -184,6 +205,8 @@ class GPSRouteRenderer{
 
 		animatedProgressIndicator.render(ctx, 0, 0);
 		animatedProgressIndicator.advance(frameTimer.elapsedTime());
+		
+		System.out.println(frameTimer.elapsedTime());
 	}
 
 	public static Color getRouteSegmentColor(GPSPoint a, GPSPoint b) {

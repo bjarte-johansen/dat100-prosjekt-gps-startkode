@@ -14,7 +14,7 @@ public class LinearInterpolation{
 		double fracPos = realPos - intPos;
 		
 		double a = points[(intPos < numPoints) ? intPos : (numPoints - 1)];
-		double b = points[((intPos + 1) < numPoints) ? intPos + 1 : (numPoints - 1)];
+		double b = points[(intPos + 1 < numPoints) ? (intPos + 1) : (numPoints - 1)];
 		
 		return a + (b - a) * fracPos;
 	}

@@ -22,29 +22,40 @@ public class GPSComputer {
 	double[] speedRange_;
 	double[] elevationRange_;
 	
+	double totalDistance_;
+	double averageSpeed_;
+	
 	public GPSComputer(String filename) {
 
 		GPSData gpsdata = GPSDataFileReader.readGPSFile(filename);
 		gpspoints = gpsdata.getGPSPoints();
 
+		init();		
 	}
 
 	public GPSComputer(GPSPoint[] gpspoints) {
 		this.gpspoints = gpspoints;
 		
+		init();		
+	}
+	
+	private void init() {
 		speedValues_ = computeSpeedValues();
 		distanceValues_ = computeDistanceValues();
 		elevationValues_ = computeElevationValues();
 		
 		speedRange_ = DoubleArray.of(speedValues_).minMax();
-		elevationRange_ = DoubleArray.of(speedValues_).minMax();
+		elevationRange_ = DoubleArray.of(elevationValues_).minMax();	
+		
+		totalDistance_ = computeTotalDistance();
+		averageSpeed_ = computeAverageSpeed();
 	}
 	
 	public GPSPoint[] getGPSPoints() {
 		return this.gpspoints;
 	}
 	
-	public double totalDistance() {
+	private double computeTotalDistance() {
 		double distance = 0;
 		
 		int n = gpspoints.length - 1;
@@ -53,6 +64,13 @@ public class GPSComputer {
 		}
 		
 		return distance;
+	}
+	
+	public double totalDistance() {
+		return totalDistance_;
+	}	
+	public double getTotalDistance() {
+		return totalDistance_;
 	}
 	
 	public double totalElevation() {
@@ -104,9 +122,12 @@ public class GPSComputer {
 		return distanceValues_;		
 	}
 	
+	//@Deprecated
 	public double findMax(double[] arr) {
 		return DoubleArray.of(arr).max();
 	}
+	
+	//@Deprecated
 	public double findAverage(double[] arr) {
 		return DoubleArray.of(arr).average();		
 	}	
@@ -118,32 +139,36 @@ public class GPSComputer {
 		return speedRange_[1];
 	}
 	
-	public double minElevation() {
+	public double getMinSpeed() {
+		return speedRange_[0];
+	}	
+	public double getMaxSpeed() {
+		return speedRange_[1];
+	}	
+	
+	public double getMinElevation() {
 		return elevationRange_[0];
-	}		
-	public double maxElevation() {
+	}
+	public double getMaxElevation() {
 		return elevationRange_[1];
 	}
 
-	public double averageSpeed() {
+	private double computeAverageSpeed() {
 		long t = totalTime();
+		
 		if(t == 0) {
 			throw new RuntimeException("time must be greater than 0");
 		}
 		
 		return totalDistance() / totalTime();
-		//var speedData = speeds();		
-		//return findAverage(speedData);
-		/*
-		double average = 0.0;
-		var speedData = speeds();
-		
-		int n = speedData.length;
-		for(int i=0; i<n; i++) {
-			average += speedData[i];
-		}
-		return average / n;
-		*/
+	}	
+	
+	public double averageSpeed() {
+		return averageSpeed_;
+	}
+	
+	public double getAverageSpeed() {
+		return averageSpeed_;
 	}
 
 
