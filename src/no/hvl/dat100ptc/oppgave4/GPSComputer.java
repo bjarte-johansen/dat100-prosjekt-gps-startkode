@@ -78,6 +78,20 @@ public class GPSComputer {
 		return speeds;
 	}
 	
+	public double[] getSpeedValues() {
+		return speeds();
+	}
+	
+	public double[] getDistanceValues() {
+		int n = gpspoints.length - 1;
+		double[] result = new double[n];
+	
+		for(int i=0; i<n; i++) {
+			result[i] = GPSUtils.distance(gpspoints[i], gpspoints[i + 1]);
+		}
+		return result;
+	}	
+	
 	public double findMax(double[] arr) {
 		if(arr == null || arr.length == 0) {
 			throw new IllegalArgumentException("array must be non-null and non-empty");
@@ -185,7 +199,8 @@ public class GPSComputer {
 		double speedmph = speed * MS;
 		double met = speedToMetabolicRate(speedmph);		
 
-		kcal = met * weight * ((double) secs / 3600.0);
+		double t = (double) secs / 3600.0;
+		kcal = met * weight * t;
 		
 		return kcal;
 	}
@@ -222,11 +237,11 @@ public class GPSComputer {
 		
 		String s = "";		
 		s += String.format("%-15s: %10s %-5s\n", "Total Time", GPSUtils.formatTime(totalTime()), "");
-		s += String.format("%-15s: %10.2f %-5s\n", "Total distance", totalDistance() / 1000, "km");
+		s += String.format("%-15s: %10.2f %-5s\n", "Total distance", totalDistance() / 100, "km");
 		s += String.format("%-15s: %10.2f %-5s\n", "Total elevation", totalElevation(), "m");
-		s += String.format("%-15s: %10.2f %-5s\n", "Max speed", maxSpeed(), "km/t");
-		s += String.format("%-15s: %10.2f %-5s\n", "Average speed", averageSpeed(), "km/t");
-		s += String.format("%-15s: %10.2f %-5s\n", "Energy", totalKcal(weight) / 1000, "kcal");
+		s += String.format("%-15s: %10.2f %-5s\n", "Max speed", maxSpeed() * 3.6, "km/t");
+		s += String.format("%-15s: %10.2f %-5s\n", "Average speed", averageSpeed() * 3.6, "km/t");
+		s += String.format("%-15s: %10.2f %-5s\n", "Energy", totalKcal(weight), "kcal");
 		
 		return s;
 	}
