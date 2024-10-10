@@ -16,10 +16,14 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
-class GPSIrregularPointResampler{
+class ResampleIrregularSamples{
 	public static class Data{
 		double[][] items;
 		int length;
+		
+		public Data(int n) {
+			resize(n);
+		}
 		
 		public void resize(int n) {
 			items = new double[n][2];
@@ -109,12 +113,45 @@ class GPSSpeedGraphRenderer {
 	// progress indicators, may be null
 	public App.GPSUIProgressIndicator[] animatedProgressIndicators = null;
 	
+	public boolean resampleData = false;
+	
 	public GPSSpeedGraphRenderer() {
 		gpscomputer = new GPSComputer(App.gpsFilename);
+
+		init();
+	}
+	
+	public void init() {
+		var gpspoints = gpscomputer.getGPSPoints();		
+		var speedValues = gpscomputer.getSpeedValues();
+		var data = new ResampleIrregularSamples.Data(gpscomputer.getGPSPoints().length);
+
+		for(int i=0; i<data.length; i++) {
+			data.items[i][0] = gpspoints[i].getTime();
+			data.items[i][1] = (i < speedValues.length) ? speedValues[i] : speedValues[speedValues.length - 1];
+		}
+		
+		double[] resampled = ResampleIrregularSamples.resample(data, speedValues.length);
+		
+		/*
+		data.items[0] = (new double[] {0, 0});
+		data.items[1] = (new double[] {4, 1});
+		data.items[2] = (new double[] {5, 2});
+		data.items[3] = (new double[] {7, 3});
+		data.items[4] = (new double[] {15, 4});
+		data.items[5] = (new double[] {20, 5});
+		
+		var result = ResampleIrregularSamples.resample(data, 21);
+		for(int i=0; i<result.length; i++) {
+			System.out.printf("%2d -> %.2f\n", i, result[i]);
+		}
+		*/
+				
+		
 		
 		// create graph data for graph rendering
 		graphData = new DoubleArrayGraphRenderer.Data();
-		graphData.values = gpscomputer.getSpeedValues();
+		graphData.values = resampleData ? resampled : speedValues;
 		graphData.numValues = graphData.values.length;
 		graphData.min = gpscomputer.getMinSpeed();
 		graphData.max = gpscomputer.getMaxSpeed();
@@ -122,6 +159,7 @@ class GPSSpeedGraphRenderer {
 		// set progress indicators to null
 		animatedProgressIndicators = null;
 	}
+	
 	
 	public void setAnimatedProgressIndicators(App.GPSUIProgressIndicator[] indicators) {
 		animatedProgressIndicators = indicators;
@@ -201,24 +239,28 @@ public class ShowSpeed {
 		var elevationRenderer = new GPSElevationGraphRenderer();
 		var routeRenderer = new GPSRouteRenderer();
 		
-		var data = new GPSIrregularPointResampler.Data();
-		data.resize(6);
-		data.items[0] = (new double[] {0, 0});
-		data.items[1] = (new double[] {4, 1});
-		data.items[2] = (new double[] {5, 2});
-		data.items[3] = (new double[] {7, 3});
-		data.items[4] = (new double[] {15, 4});
-		data.items[5] = (new double[] {20, 5});
-		
-		var result = GPSIrregularPointResampler.resample(data, 21);
-		for(int i=0; i<result.length; i++) {
-			System.out.printf("%2d -> %.2f\n", i, result[i]);
-		}
 		
 		
 		
-        JFrame frame = new JFrame("Double Buffering Example");		
-		
+        JFrame frame = new JFrame("Double Buffering Example");
+  
+        // Add KeyAdapter to the JFrame
+        frame.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                System.out.println("Key Pressed: " + KeyEvent.getKeyText(e.getKeyCode()));
+                if(e.getKeyCode() == KeyEvent.VK_SPACE) {
+                	speedRenderer.resampleData = !speedRenderer.resampleData;
+                	speedRenderer.init();
+                	
+                	elevationRenderer.resampleData = !elevationRenderer.resampleData;
+                	elevationRenderer.init();                	
+                	//speedRenderer.invalidate();
+                	//speedRenderer.repaint();
+    
+                }
+            }
+        });		
 		var resizeAdapter = new ComponentAdapter() {		
 			@Override
 			public void componentResized(ComponentEvent e) {

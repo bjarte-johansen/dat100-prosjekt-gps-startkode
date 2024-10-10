@@ -28,18 +28,36 @@ class GPSElevationGraphRenderer {
 	// progress indicators, may be null
 	public App.GPSUIProgressIndicator[] animatedProgressIndicators = null;
 	
+	public boolean resampleData;
+	
 	public GPSElevationGraphRenderer() {
 		gpscomputer = new GPSComputer(App.gpsFilename);
 		
+		init();
+	}
+	
+	public void init() {
+		var gpspoints = gpscomputer.getGPSPoints();		
+		var elevationValues = gpscomputer.getSpeedValues();
+		var data = new ResampleIrregularSamples.Data(gpscomputer.getGPSPoints().length);
+
+		for(int i=0; i<data.length; i++) {
+			data.items[i][0] = gpspoints[i].getElevation();
+			data.items[i][1] = (i < elevationValues.length) ? elevationValues[i] : elevationValues[elevationValues.length - 1];
+		}
+		
+		double[] resampled = ResampleIrregularSamples.resample(data, elevationValues.length);
+		
+		
 		// create graph data for graph rendering		
 		graphData = new DoubleArrayGraphRenderer.Data();
-		graphData.values = gpscomputer.getElevationValues();
+		graphData.values = resampleData ? resampled : gpscomputer.getElevationValues();
 		graphData.numValues = graphData.values.length;
 		graphData.min = gpscomputer.getMinElevation();
 		graphData.max = gpscomputer.getMaxElevation();
 		
 		// set progress indicators to null		
-		animatedProgressIndicators = null;
+		animatedProgressIndicators = null;		
 	}
 	
 	public void setAnimatedProgressIndicators(App.GPSUIProgressIndicator[] indicators) {
@@ -93,8 +111,7 @@ public class ShowProfile {
 	public ShowProfile() {
 		var elevationGraphRenderer = new GPSElevationGraphRenderer();
 		
-		GPSP		
-		
+			
         JFrame frame = new JFrame("GPS Elevation");		
 		
 		var resizeAdapter = new ComponentAdapter() {		
