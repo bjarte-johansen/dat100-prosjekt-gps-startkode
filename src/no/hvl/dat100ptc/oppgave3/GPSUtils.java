@@ -3,68 +3,31 @@ package no.hvl.dat100ptc.oppgave3;
 import static java.lang.Math.*;
 
 import no.hvl.dat100ptc.oppgave1.GPSPoint;
+import no.hvl.dat100ptc.DoubleArray;
 import no.hvl.dat100ptc.MapGpsPointPairToDouble;
 import no.hvl.dat100ptc.MapGpsPointToDouble;
 import no.hvl.dat100ptc.TODO;
 
 public class GPSUtils {
-
+	private static final int R = 6371000; // jordens radius
+	
 	public static double findMax(double[] da) {
-
-		double max; 
-		
-		max = da[0];
-		
-		for (double d : da) {
-			if (d > max) {
-				max = d;
-			}
-		}
-		
-		return max;
+		return DoubleArray.of(da).max();
 	}
 
 	public static double findMin(double[] da) {
-
-		double min; 
-		
-		min = da[0];
-		
-		for (double d : da) {
-			if (d < min) {
-				min = d;
-			}
-		}
-		
-		return min;
-		
+		return DoubleArray.of(da).min();
 	}
 
-	public static double[] getLatitudes(GPSPoint[] gpspoints) {
-		int n = gpspoints.length;				
-		double[] result = new double[n];
-		
-		for(int i=0; i<n; i++) {
-			result[i] = gpspoints[i].getLatitude();
-		}
-		
-		return result;
+	public static double[] getLatitudeValues(GPSPoint[] gpspoints) {
+		return mapGpsPointsToDouble(gpspoints, GPSPoint::getLatitude);
 	}
 
-	public static double[] getLongitudes(GPSPoint[] gpspoints) {
-		int n = gpspoints.length;				
-		double[] result = new double[n];
-		
-		for(int i=0; i<n; i++) {
-			result[i] = gpspoints[i].getLongitude();
-		}
-		
-		return result;
+	public static double[] getLongitudeValues(GPSPoint[] gpspoints) {
+		return mapGpsPointsToDouble(gpspoints, GPSPoint::getLongitude);
 	}
 
-	private static final int R = 6371000; // jordens radius
-	
-	public static double[] mapGpsPointToDouble(GPSPoint[] gpspoints, MapGpsPointToDouble callback) {
+	public static double[] mapGpsPointsToDouble(GPSPoint[] gpspoints, MapGpsPointToDouble callback) {
 		int n = gpspoints.length;
 		if(n == 0) {
 			throw new IllegalArgumentException("gpspoints must have at least 1 elements");
@@ -92,7 +55,6 @@ public class GPSUtils {
 	}
 
 	public static double distance(GPSPoint gpspoint1, GPSPoint gpspoint2) {
-
 		double d;
 		double latitude1, longitude1, latitude2, longitude2;
 		
@@ -120,6 +82,10 @@ public class GPSUtils {
 
 	private static double compute_c(double a) {
 		return 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+	}
+	
+	public static double computeElevation(GPSPoint p1, GPSPoint p2) {
+		return p2.getElevation() - p1.getElevation();
 	}
 
 	public static long timeBetweenPoints(GPSPoint p1, GPSPoint p2) {

@@ -60,7 +60,7 @@ public class DoubleArray{
 		return sum;
 	}
 	
-	public double[] minMax() {
+	public double[] minmax() {
 		if(arr == null || arr.length == 0) {
 			throw new RuntimeException("array must be non-null and non-empty");
 		}
@@ -78,7 +78,7 @@ public class DoubleArray{
 			if(e > maxVal)
 				maxVal = e;
 		}		
-		
+
 		return (new double[] {minVal, maxVal});		
 	}
 	

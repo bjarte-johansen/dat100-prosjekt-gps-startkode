@@ -12,7 +12,6 @@ import java.util.Arrays;
 import no.hvl.dat100ptc.TODO;
 
 public class GPSComputer {
-	
 	private GPSPoint[] gpspoints;
 	
 	double[] speedValues_;
@@ -21,9 +20,13 @@ public class GPSComputer {
 	
 	double[] speedRange_;
 	double[] elevationRange_;
+	double[] distanceRange_;
 	
 	double totalDistance_;
 	double averageSpeed_;
+	
+	double totalElevation_;
+	int totalTime_;
 	
 	public GPSComputer(String filename) {
 
@@ -40,15 +43,20 @@ public class GPSComputer {
 	}
 	
 	private void init() {
+		totalTime_ = computeTotalTime();
+		
 		speedValues_ = computeSpeedValues();
 		distanceValues_ = computeDistanceValues();
 		elevationValues_ = computeElevationValues();
 		
-		speedRange_ = DoubleArray.of(speedValues_).minMax();
-		elevationRange_ = DoubleArray.of(elevationValues_).minMax();	
+		speedRange_ = DoubleArray.of(speedValues_).minmax();
+		distanceRange_ = DoubleArray.of(distanceValues_).minmax();
+		elevationRange_ = DoubleArray.of(elevationValues_).minmax();	
 		
 		totalDistance_ = computeTotalDistance();
 		averageSpeed_ = computeAverageSpeed();
+		
+		totalElevation_ = computeTotalElevation();
 	}
 	
 	public GPSPoint[] getGPSPoints() {
@@ -65,15 +73,8 @@ public class GPSComputer {
 		
 		return distance;
 	}
-	
-	public double totalDistance() {
-		return totalDistance_;
-	}	
-	public double getTotalDistance() {
-		return totalDistance_;
-	}
-	
-	public double totalElevation() {
+		
+	private double computeTotalElevation() {
 		double elevation = 0;
 		int n = gpspoints.length - 1;
 		for(int i=0; i<n; i++) {
@@ -86,8 +87,8 @@ public class GPSComputer {
 		}		
 		return elevation;
 	}
-
-	public int totalTime() {
+	
+	private int computeTotalTime() {
 		if(gpspoints.length < 2) {
 			throw new RuntimeException("minimum 2 gpspoints required");
 		}
@@ -95,8 +96,7 @@ public class GPSComputer {
 		var t1 = gpspoints[gpspoints.length - 1].getTime();
 		var t0 = gpspoints[0].getTime();
 		return (int)(t1 - t0);
-	}
-		
+	}	
 
 	private double[] computeSpeedValues() {
 		return GPSUtils.mapGpsPointPairsToDouble(gpspoints, GPSUtils::speed);
@@ -107,9 +107,38 @@ public class GPSComputer {
 	}		
 	
 	private double[] computeElevationValues() {
-		return GPSUtils.mapGpsPointToDouble(gpspoints, GPSPoint::getElevation);
+		return GPSUtils.mapGpsPointsToDouble(gpspoints, GPSPoint::getElevation);
+	}
+	
+	private double computeAverageSpeed() {
+		long t = totalTime();
+		
+		if(t == 0) {
+			throw new RuntimeException("time must be greater than 0");
+		}
+		
+		return totalDistance() / totalTime();
 	}
 
+	public double totalDistance() {
+		return totalDistance_;
+	}	
+	public double getTotalDistance() {
+		return totalDistance_;
+	}
+	
+	public double totalElevation() {
+		return totalElevation_;
+	}
+	public double getTtalElevation() {
+		return totalElevation_;
+	}	
+	
+	public int totalTime() {
+		return totalTime_;
+	}
+		
+	
 	public double[] speeds() {
 		return speedValues_;
 	}	
@@ -117,11 +146,14 @@ public class GPSComputer {
 		return speedValues_;
 	}
 	
-
 	public double[] getDistanceValues() {
 		return distanceValues_;		
 	}
 	
+	public double[] getElevationValues() {
+		return elevationValues_;		
+	}	
+	/*
 	//@Deprecated
 	public double findMax(double[] arr) {
 		return DoubleArray.of(arr).max();
@@ -130,7 +162,8 @@ public class GPSComputer {
 	//@Deprecated
 	public double findAverage(double[] arr) {
 		return DoubleArray.of(arr).average();		
-	}	
+	}
+	*/	
 
 	public double minSpeed() {
 		return speedRange_[0];
@@ -152,16 +185,15 @@ public class GPSComputer {
 	public double getMaxElevation() {
 		return elevationRange_[1];
 	}
-
-	private double computeAverageSpeed() {
-		long t = totalTime();
-		
-		if(t == 0) {
-			throw new RuntimeException("time must be greater than 0");
-		}
-		
-		return totalDistance() / totalTime();
+	
+	public double getMinDistance() {
+		return elevationRange_[0];
+	}
+	public double getMaxDistance() {
+		return elevationRange_[1];
 	}	
+
+
 	
 	public double averageSpeed() {
 		return averageSpeed_;

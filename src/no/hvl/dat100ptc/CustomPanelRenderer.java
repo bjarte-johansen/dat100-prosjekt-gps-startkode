@@ -41,7 +41,6 @@ public class CustomPanelRenderer extends JPanel {
         timer.start();       
     }
     
-    
 
     // Override the getMaximumSize() to restrict the maximum height
     @Override
@@ -49,8 +48,7 @@ public class CustomPanelRenderer extends JPanel {
         Dimension maxSize = super.getMaximumSize();
 //        maxSize.height = 150; // Set maximum height to 150 pixels
         return maxSize;
-    }
-    
+    }   
 
     
     // set antialiasing
@@ -63,7 +61,7 @@ public class CustomPanelRenderer extends JPanel {
     	renderingHints_.put(RenderingHints.KEY_RENDERING, hint);
     }
     
-    
+    /*
     // get / set buffer width/height
     public int getBufferWidth() {
     	return buffer.getWidth();
@@ -71,6 +69,8 @@ public class CustomPanelRenderer extends JPanel {
     public int getBufferHeight() {
     	return buffer.getHeight();
     }
+    */
+    
     public void setBufferSize(int width, int height) {
         buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
     }
@@ -79,7 +79,7 @@ public class CustomPanelRenderer extends JPanel {
     // paint method
     @Override
     protected void paintComponent(Graphics g) {
-    	if(getBufferWidth() != getWidth() || getBufferHeight() != getHeight()) {
+    	if(buffer.getWidth() != getWidth() || buffer.getHeight() != getHeight()) {
     		setBufferSize(getWidth(), getHeight());
     	}
     	
@@ -92,7 +92,7 @@ public class CustomPanelRenderer extends JPanel {
        	g2d.setRenderingHints(renderingHints_);
         
         // render
-        customRenderCallback.render(g2d, getBufferWidth(), getBufferHeight());
+        customRenderCallback.render(g2d, buffer.getWidth(), buffer.getHeight());
         
         // Dispose of the off-screen graphics context
         g2d.dispose();

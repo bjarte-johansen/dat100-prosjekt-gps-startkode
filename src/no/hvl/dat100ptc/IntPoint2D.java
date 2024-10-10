@@ -18,7 +18,9 @@ public class IntPoint2D{
 	
 	public int getX() { return x; }
 	public int getY() { return y; }
-		
+	
+	/*
 	public void translate(int x, int y) { this.x += x; this.y += y; }
 	public IntPoint2D translated(int x, int y) { return new IntPoint2D(this.x + x, this.y + y); }
+	*/
 }

@@ -13,17 +13,15 @@ public class GPSDataConverter {
     	String m = timeStr.substring(14, 14 + 2);
     	String s = timeStr.substring(17, 17 + 2);   	
     	
-    	long time = (long)(Integer.parseInt(h) * 60 * 60 
-    			+ Integer.parseInt(m) * 60
-    			+ Integer.parseInt(s));
+    	long time = Long.parseLong(h) * 60 * 60 
+			+ Long.parseLong(m) * 60
+			+ Long.parseLong(s);
     	
     	return (int) time;
 	}
 
 	public static GPSPoint convert(String timeStr, String latitudeStr, String longitudeStr, String elevationStr) {
-
-		GPSPoint gpspoint = GPSPoint.convert(timeStr,  latitudeStr, longitudeStr, elevationStr);
-		return gpspoint;
+		return GPSPoint.convert(timeStr,  latitudeStr, longitudeStr, elevationStr);
 	}
 	
 }

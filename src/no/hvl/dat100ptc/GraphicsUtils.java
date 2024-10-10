@@ -7,6 +7,16 @@ public class GraphicsUtils{
 	public static Color copyColor(Color c) {
 		return new Color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
 	}
+
+	public static Color createRandomColor() {
+		return new Color(
+			(int)(Math.random() * 255),
+			(int)(Math.random() * 255),
+			(int)(Math.random() * 255)
+			);
+	}
+	
+
 	/*
 	public static Color lerpColorRGBA(int alpha, Color c1, Color c2) {
 		return new Color(

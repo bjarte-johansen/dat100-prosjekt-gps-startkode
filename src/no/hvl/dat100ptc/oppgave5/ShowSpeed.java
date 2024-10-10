@@ -10,117 +10,212 @@ import no.hvl.dat100ptc.oppgave2.GPSData;
 import no.hvl.dat100ptc.oppgave2.GPSDataFileReader;
 import no.hvl.dat100ptc.oppgave3.GPSUtils;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
-import no.hvl.dat100ptc.TODO;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
+class GPSIrregularPointResampler{
+	public static class Data{
+		double[][] items;
+		int length;
+		
+		public void resize(int n) {
+			items = new double[n][2];
+			length = n;
+		}
+	}
+	
+	static double interpolate(double x0, double y0, double x1, double y1, double pos) {
+		double time_range = x1 - x0;
+		double value_range = y1 - y0;
+		
+		if(Math.abs(time_range) < 1e-10) {
+			throw new IllegalArgumentException("x1 - x0 must be greater than 0");
+		}
+		
+		return y0 + ((pos - x0) / time_range) * value_range; 
+	}
+	
+	static double[] resample(Data data, int new_length) {
+		if(new_length == 0) {
+			throw new IllegalArgumentException("output length must be greater than 0");
+		}
+		if(data.length == 0) {
+			throw new IllegalArgumentException("input length must be greater than 0");
+		}
+		
+		int currentIndex = 0;
+		double startTime = data.items[0][0];
+		double endTime = data.items[data.length - 1][0];
+		double interval = (endTime - startTime) / (new_length - 1);		
+		double nextTime = startTime;
+		double maxValue;
+		
+		//System.out.printf("startTime: %.2f, endTime: %.2f, interval: %.2f\n", startTime, endTime, interval);
+		
+		if(Math.abs(endTime - startTime) < 1e-9) {
+			throw new IllegalArgumentException("time-range must be greater than 0");
+		}		
+		
+		// allocate memory
+		double[] resampled = new double[new_length];
+	
+		// find remaining resampled values
+		for(int i=0; i<new_length; i++) {					
+			// find last segment
+			maxValue = Double.MIN_VALUE;
+			
+			// find max value within now .. next
+			while(currentIndex + 1 < data.length && data.items[currentIndex + 1][0] < nextTime) {
+				if(data.items[currentIndex + 1][1] > maxValue) {
+					maxValue = data.items[currentIndex + 1][1];
+				}
+				currentIndex++;
+			}
+				
+			// resample value
+			if(currentIndex + 1 >= data.length) {
+				resampled[i] = data.items[currentIndex][1];
+			}else {
+				double[] p1 = data.items[currentIndex];
+				double[] p2 = data.items[currentIndex + 1];
+				
+				resampled[i] = interpolate(p1[0], p1[1], p2[0], p2[1], nextTime);
+			}
+			
+			// take max of resampled and found max value
+			resampled[i] = Math.max(resampled[i], maxValue);
+			
+			// advance
+			nextTime += interval;
+		}
+		
+		return resampled;
+	}
+}
 
-class SpeedProfileRenderer {	
-	public static int MARGIN = 4;
+class GPSSpeedGraphRenderer {
+	private static int MARGIN = 4;
 
-	public GPSComputer gpscomputer;	
+	//
+	private GPSComputer gpscomputer;	
+	private DoubleArrayGraphRenderer.Data graphData;
+	
+	// declare rectangle to draw within
 	private IntRectangle R;
+
+	// progress indicators, may be null
+	public App.GPSUIProgressIndicator[] animatedProgressIndicators = null;
 	
-	class AnimatedGraphProgressIndicator{
-		private double position_;
-		public Color color;
+	public GPSSpeedGraphRenderer() {
+		gpscomputer = new GPSComputer(App.gpsFilename);
 		
-		AnimatedGraphProgressIndicator(){
-			position_ = 0;
-		}
+		// create graph data for graph rendering
+		graphData = new DoubleArrayGraphRenderer.Data();
+		graphData.values = gpscomputer.getSpeedValues();
+		graphData.numValues = graphData.values.length;
+		graphData.min = gpscomputer.getMinSpeed();
+		graphData.max = gpscomputer.getMaxSpeed();
 		
-		void setTrackingPosition(double val) {
-			position_ = val;
-		}
-		double getTrackingPosition() {
-			return position_;
-		}
-		
-		void setTrackingColor(Color val) {
-			color = val;
-		}
-		Color getTrackingColor() {
-			return color;
-		}			
-		
-		public void render(Graphics2D ctx, int w, int h) {
-			ctx.setColor(color);
-			ctx.setStroke(new BasicStroke(GPSUI.SpeedGraph.progressIndicatorSize));
-			ctx.drawLine(R.getMinX(), R.getMinY(), R.getMaxX(), R.getMaxY());
-		}
+		// set progress indicators to null
+		animatedProgressIndicators = null;
 	}
 	
-	//public AnimatedGraphProgressIndicator[] animatedProgressIndicator = animatedProgressIndicator;
-	
-	public SpeedProfileRenderer() {
-		//String filename = JOptionPane.showInputDialog("GPS data filnavn: ");
-		String filename = "medium";
-		gpscomputer = new GPSComputer(filename);
+	public void setAnimatedProgressIndicators(App.GPSUIProgressIndicator[] indicators) {
+		animatedProgressIndicators = indicators;
 	}
+	
+	private double getGraphVerticalScale() {
+		return (1.0 / graphData.max) * R.getHeight() * 0.9;
+	}	
 	
 	public void render(Graphics2D ctx, int w, int h) {
 		// clear background
-		ctx.setColor(ColorUtils.white);
+		ctx.setColor(GPSUI.Default.bgColor);
 		ctx.fillRect(0, 0, w, h);
 		
+		// make bounding rectangle for graph
 		R = new IntRectangle(MARGIN, MARGIN, w - MARGIN * 2, h - MARGIN * 2);
+
+		// early exit if no points
+		if(graphData.numValues == 0) return;
+
+		// render graph
+		renderGraph(ctx);
 		
-		if(gpscomputer.getSpeedValues().length == 0) {
+		// render average speed
+		renderAverageSpeed(ctx);
+		
+		// render progress indicators
+		renderAnimatedProgressIndicators(ctx);	
+	}
+	
+	// render progress indicator	
+	private void renderAnimatedProgressIndicators(Graphics2D ctx) {
+		if(animatedProgressIndicators == null) {
 			return;
-		}		
+		}
+			
+		for(int i=0; i<animatedProgressIndicators.length; i++) {
+			var indicator = animatedProgressIndicators[i];
 		
-		renderGraph(ctx, w, h);
-		
-		renderAverageSpeed(ctx, w, h);
-	}
+			ctx.setColor(indicator.getTrackingColor());
+			ctx.setStroke(new BasicStroke(GPSUI.SpeedGraph.progressIndicatorSize));
+			
+			int x = (int)(indicator.getTrackingPosition() * R.getWidth());
+			ctx.drawLine(x, R.getMinY(), x, R.getMaxY());
+		}
+	}	
 	
-	public double getGraphFloatValueAt(double pos) {
-		double[] speedValues = gpscomputer.getSpeedValues();
-		double yFactor = R.getHeight() * (1.0 / gpscomputer.getMaxSpeed()) * 0.9;
-		
-		return LinearInterpolation.interpolate(pos, speedValues, speedValues.length) * yFactor;		
-	}
-	
-	public void renderGraph(Graphics2D ctx, int w, int h) {	
-		double val;		
-		double pos = 0.0;
-		double delta = 1.0 / R.width;
-		
+	// render graph
+	private void renderGraph(Graphics2D ctx) {
 		// draw graph
         ctx.setStroke(new BasicStroke(1));
         ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
-	
-		for(int i=0; i<R.width; i++) {
-			val = getGraphFloatValueAt(pos);
-			
-			int x = R.getMinX() + i;
-			int y = R.getMaxY() - (int) val;
-				
-			ctx.drawLine(x, R.getMaxY(), x, y);
-			
-			pos += delta;			
-		}
+        
+		DoubleArrayGraphRenderer.render(ctx, R, graphData);
 	}
 	
-	public void renderAverageSpeed(Graphics2D ctx, int w, int h) {
-		double yFactor = R.getHeight() * (1.0 / gpscomputer.getMaxSpeed()) * 0.9;		
-
+	// render average speed indicator
+	private void renderAverageSpeed(Graphics2D ctx) {		
 		ctx.setStroke(new BasicStroke(GPSUI.SpeedGraph.averageSpeedIndicatorSize));
 		ctx.setColor(GPSUI.SpeedGraph.averageSpeedIndicatorColor);
 		
-		double val = gpscomputer.getAverageSpeed() * yFactor;
+		double val = gpscomputer.getAverageSpeed() * getGraphVerticalScale();
 		int y = R.getMaxY() - (int)(val);		
 		ctx.drawLine(R.getMinX(), y, R.getMaxX(), y);	
 	}
 }
 
+
+
+/*
+ * 
+ */
+
 public class ShowSpeed {	
 	public ShowSpeed() {
-		var speedRenderer = new SpeedProfileRenderer();
+		var speedRenderer = new GPSSpeedGraphRenderer();
+		var elevationRenderer = new GPSElevationGraphRenderer();
 		var routeRenderer = new GPSRouteRenderer();
+		
+		var data = new GPSIrregularPointResampler.Data();
+		data.resize(6);
+		data.items[0] = (new double[] {0, 0});
+		data.items[1] = (new double[] {4, 1});
+		data.items[2] = (new double[] {5, 2});
+		data.items[3] = (new double[] {7, 3});
+		data.items[4] = (new double[] {15, 4});
+		data.items[5] = (new double[] {20, 5});
+		
+		var result = GPSIrregularPointResampler.resample(data, 21);
+		for(int i=0; i<result.length; i++) {
+			System.out.printf("%2d -> %.2f\n", i, result[i]);
+		}
+		
+		
 		
         JFrame frame = new JFrame("Double Buffering Example");		
 		
@@ -139,7 +234,6 @@ public class ShowSpeed {
 		
 		var container = new JPanel();
 		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-		
 
         var panel1 = new CustomPanelRenderer(600, 100, speedRenderer::render);
         panel1.addComponentListener(resizeAdapter);        
@@ -147,7 +241,7 @@ public class ShowSpeed {
         
         container.add(Box.createVerticalStrut(4));
         
-        var panel2 = new CustomPanelRenderer(600, 100, speedRenderer::render);
+        var panel2 = new CustomPanelRenderer(600, 100, elevationRenderer::render);
         panel2.addComponentListener(resizeAdapter);
         panel2.setMaximumSize(new Dimension(300, 150));
         container.add(panel2);
@@ -155,11 +249,9 @@ public class ShowSpeed {
         container.add(Box.createVerticalStrut(4));
         
         var panel3 = new CustomPanelRenderer(900, 900, (ctx, w, h) -> {
-        	for(int i=0; i<routeRenderer.animatedProgressIndicator.length;i++) {
-        		//speedRenderer.ani
-        	}
+        	speedRenderer.setAnimatedProgressIndicators(routeRenderer.animatedProgressIndicator);
+        	elevationRenderer.setAnimatedProgressIndicators(routeRenderer.animatedProgressIndicator);
         	routeRenderer.render(ctx, w, h);
-        	//routeRenderer::render	
         });
         container.add(panel3);     
         
