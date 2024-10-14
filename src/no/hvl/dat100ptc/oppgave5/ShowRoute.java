@@ -26,6 +26,9 @@ import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
 class GPSUI{
 	public class Default{
+		
+		static Color componentBorderColor = Color.decode("#CCCCCC");
+		
 		static Color bgColor = Color.decode("#FFFFFF");
 		static Color fgColor = Color.decode("#333333");
 	}
@@ -36,7 +39,9 @@ class GPSUI{
 		
 		// uphill / downhill line (also used for up/down waypoint)
 		static Color routeDownhillColor = new Color(0,200,0);
+		static Color routeSecondDownhillColor = new Color(0,100,0);
 		static Color routeUphillColor = new Color(200,0,0);
+		static Color routeSecondUphillColor = new Color(100,0,0);
 		
 		// endpoint
 		static Color endpointIndicatorColor = new Color(100,100,100,200);
@@ -59,13 +64,15 @@ class GPSUI{
 	}
 	
 	public class SpeedGraph{
-		static Color foregroundColor = ColorUtils.niceBlue;
+		static Color foregroundColor = GraphicsUtils.copyColor(ColorUtils.niceBlue);
 		
 		static int averageSpeedIndicatorSize = 2;
 		static Color averageSpeedIndicatorColor = new Color(255,50,50,200);
 		
 		static int progressIndicatorSize = 2;
 		static Color progressIndicatorColor = new Color(255,255,255,220);
+		
+		static boolean SHOW_SPEED_AS_COLOR = true;
 	}
 	
 	public class ElevationGraph{
@@ -119,9 +126,9 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 			segmentIndex = 0;
 			currentDistance = 0.0;
 		}
-		
-		double segmentSpeed;			
-		
+
+		double segmentSpeed;
+
 		GPSPoint p0 = gpspoints[segmentIndex];
 		GPSPoint p1 = gpspoints[segmentIndex + 1];
 		
@@ -150,8 +157,13 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 		int y = (int) LinearInterpolation.interpolate(pos, screenStart.y, screenEnd.y);
 		
 		ctx.setStroke(new BasicStroke(1));
+		
+		GPSPoint p0 = gpspoints[segmentIndex];
+		GPSPoint p1 = gpspoints[segmentIndex + 1];		
 	
 		ctx.setColor(getTrackingColor());
+		//ctx.setColor(GraphicsUtils.lerpColorRGBA(1.0-GPSUtils.speed(p0, p1)/gpscomputer.getMaxSpeed(), Color.red, Color.black));
+		//ctx.setColor(GraphicsUtils.lerpColorRGBA(1.0-GPSUtils.speed(p0, p1)/gpscomputer.getMaxSpeed(), Color.red, Color.black));
 		GraphicsUtils.fillCircle(ctx, x, y, GPSUI.Route.progressIndicatorSize);
 		
 		ctx.setColor(Color.black);
@@ -202,13 +214,14 @@ class GPSRouteRenderer{
 		double animationSpeedOffset = 1.0;
 		double animationSpeedRandomAmount = 1.0;
 		
-		int numIndicators = 100;
+		int numIndicators = 10;
 		
 		// allocate create progress indicator objects
 		animatedProgressIndicator = new AnimatedProgressIndicator[numIndicators];
 		for(int i=0; i<animatedProgressIndicator.length;i++) {			
 			animatedProgressIndicator[i] = new AnimatedProgressIndicator(gpscomputer, this);
 			animatedProgressIndicator[i].animationSpeed = currentAnimationSpeed;
+			//
 			animatedProgressIndicator[i].setTrackingColor(GraphicsUtils.createRandomColor());
 			
 			currentAnimationSpeed += animationSpeedOffset + Math.random() * animationSpeedRandomAmount;			
@@ -226,7 +239,9 @@ class GPSRouteRenderer{
 	}
 
 	public static Color getRouteSegmentColor(GPSPoint a, GPSPoint b) {
-		return (a.getElevation() < b.getElevation()) ? GPSUI.Route.routeUphillColor : GPSUI.Route.routeDownhillColor;
+		return (a.getElevation() < b.getElevation()) ? 
+			GPSUI.Route.routeUphillColor : 
+			GPSUI.Route.routeDownhillColor;
 	}
 
 	public IntPoint2D gpsPointToDrawSpace(GPSPoint p) {
@@ -337,29 +352,5 @@ class GPSRouteRenderer{
 		for(int i=0; i<lines.length; i++) {
 			ctx.drawString(lines[i], R.getMinX(), R.getMinY() + TEXTDISTANCE * i);
 		}
-	}
-}
-
-public class ShowRoute{	
-	private static int MARGIN = 16;
-
-	public static void main(String[] args) {
-		var renderer = new GPSRouteRenderer();
-		
-		//var container = new JPanel();
-        //container.setBorder(new EmptyBorder(MARGIN, MARGIN, MARGIN, MARGIN));
-        
-		// create custom panel with render callback
-		// it will resize to parent container width
-        var panel = new CustomPanelRenderer(600, 600, renderer::render);
-        panel.setAntialiasing(true);
-        panel.setDoubleBuffered(true);
-        //container.add(panel);
-        
-        JFrame frame = new JFrame("GPS Route renderer");
-        frame.setSize(940, 940);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);        
-        frame.add(panel);     
-        frame.setVisible(true);        
 	}
 }

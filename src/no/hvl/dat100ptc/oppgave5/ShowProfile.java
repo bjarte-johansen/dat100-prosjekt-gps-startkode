@@ -15,8 +15,9 @@ import no.hvl.dat100ptc.oppgave2.GPSDataConverter;
 import no.hvl.dat100ptc.oppgave2.GPSDataFileReader;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
-
-class GPSElevationGraphRenderer {	
+ 
+class GPSElevationGraphRenderer
+{
 	private static int MARGIN = 4;
 
 	private GPSComputer gpscomputer;	
@@ -30,41 +31,46 @@ class GPSElevationGraphRenderer {
 	
 	public boolean resampleData;
 	
-	public GPSElevationGraphRenderer() {
+	public GPSElevationGraphRenderer()
+	{
 		gpscomputer = new GPSComputer(App.gpsFilename);
 		
 		init();
 	}
 	
-	public void init() {
+	public void init() 
+	{
 		var gpspoints = gpscomputer.getGPSPoints();		
-		var elevationValues = gpscomputer.getSpeedValues();
-		var data = new ResampleIrregularSamples.Data(gpscomputer.getGPSPoints().length);
+		var dataValues = gpscomputer.getElevationValues();
 
+		// create time-value series
+		var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
 		for(int i=0; i<data.length; i++) {
-			data.items[i][0] = gpspoints[i].getElevation();
-			data.items[i][1] = (i < elevationValues.length) ? elevationValues[i] : elevationValues[elevationValues.length - 1];
+			data.times[i] = gpspoints[i].getTime();
+			data.values[i] = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
 		}
-		
-		double[] resampled = ResampleIrregularSamples.resample(data, elevationValues.length);
-		
-		
+
+		// resample timeseries to regularly spaced values
+		double[] resampled = IrregularTimeValueSeriesResampler.resample(data, 600);
+
 		// create graph data for graph rendering		
 		graphData = new DoubleArrayGraphRenderer.Data();
 		graphData.values = resampleData ? resampled : gpscomputer.getElevationValues();
 		graphData.numValues = graphData.values.length;
 		graphData.min = gpscomputer.getMinElevation();
 		graphData.max = gpscomputer.getMaxElevation();
-		
-		// set progress indicators to null		
+
+		// set progress indicators to null
 		animatedProgressIndicators = null;		
 	}
 	
-	public void setAnimatedProgressIndicators(App.GPSUIProgressIndicator[] indicators) {
+	public void setAnimatedProgressIndicators(App.GPSUIProgressIndicator[] indicators) 
+	{
 		animatedProgressIndicators = indicators;
 	}
 		
-	public void render(Graphics2D ctx, int w, int h) {
+	public void render(Graphics2D ctx, int w, int h) 
+	{
 		// clear background
 		ctx.setColor(GPSUI.Default.bgColor);
 		ctx.fillRect(0, 0, w, h);
@@ -82,12 +88,15 @@ class GPSElevationGraphRenderer {
 		renderAnimatedProgressIndicators(ctx);	
 	}
 	
-	private void renderAnimatedProgressIndicators(Graphics2D ctx) {
-		if(animatedProgressIndicators == null) {
+	private void renderAnimatedProgressIndicators(Graphics2D ctx) 
+	{
+		if(animatedProgressIndicators == null) 
+		{
 			return;
 		}
 			
-		for(int i=0; i<animatedProgressIndicators.length; i++) {
+		for(int i=0; i<animatedProgressIndicators.length; i++) 
+		{
 			var indicator = animatedProgressIndicators[i];
 		
 			ctx.setColor(indicator.getTrackingColor());
@@ -96,52 +105,52 @@ class GPSElevationGraphRenderer {
 			int x = (int)(indicator.getTrackingPosition() * R.getWidth());
 			ctx.drawLine(x, R.getMinY(), x, R.getMaxY());
 		}
-	}	
+	}
 	
-	private void renderGraph(Graphics2D ctx) {
+	private void renderGraph(Graphics2D ctx) 
+	{
 		// draw graph
         ctx.setStroke(new BasicStroke(1));
         ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
         
-		DoubleArrayGraphRenderer.render(ctx, R, graphData);
-	}
-}
-
-public class ShowProfile {	
-	public ShowProfile() {
-		var elevationGraphRenderer = new GPSElevationGraphRenderer();
-		
+		//DoubleArrayGraphRenderer.render(ctx, R, graphData);
+        
+        IntRectangle bounds = R;
+        
+		double val;		
+		double pos = 0.0;
+		double delta = 1.0 / bounds.width;
+		double verticalScaleFactor = DoubleArrayGraphRenderer.getGraphVerticalScale(graphData, bounds);
 			
-        JFrame frame = new JFrame("GPS Elevation");		
+		Color currentColor;		
+		double previousValue = DoubleArrayGraphRenderer.getGraphFloatValueAt(0.0, graphData) * verticalScaleFactor;
 		
-		var resizeAdapter = new ComponentAdapter() {		
-			@Override
-			public void componentResized(ComponentEvent e) {
-				var o = (JPanel) e.getComponent();
-				o.setMaximumSize(new Dimension(frame.getWidth(), 150));
-				o.setMinimumSize(new Dimension(frame.getWidth(), 150));
-				o.setPreferredSize(new Dimension(frame.getWidth(), 150));
+		for(int i=0; i<bounds.width; i++) {
+			val = DoubleArrayGraphRenderer.getGraphFloatValueAt(pos, graphData) * verticalScaleFactor;
+			
+			{
+				double diffValue = (val - previousValue);
+				boolean uphill = (diffValue >= 0.0);
+				double normalizedDiffValue = Math.abs(diffValue) / graphData.max;
 				
-				o.invalidate();
-				o.repaint();
-			}
-		};
+				if(uphill) {
+					currentColor = GraphicsUtils.lerpColorRGBA(normalizedDiffValue * 100, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor);
+				}else {
+					currentColor = GraphicsUtils.lerpColorRGBA(normalizedDiffValue * 100, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor);					
+				}
+				ctx.setColor(currentColor);
+				
+				previousValue = val;
+			}		
+			
+			int x = bounds.getMinX() + i;
+			int y = bounds.getMaxY() - (int) val;
+				
+			ctx.drawLine(x, bounds.getMaxY(), x, y);
+			
+			pos += delta;			
+		}   
 		
-		var container = new JPanel();
-		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-
-        var panel1 = new CustomPanelRenderer(600, 100, elevationGraphRenderer::render);
-        panel1.addComponentListener(resizeAdapter);        
-        container.add(panel1);
-        
-        frame.add(container);
-        
-        frame.setSize(600, 200);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);    
-        frame.setVisible(true);
-	}
-	
-	public static void main(String[] args) {	
-		new ShowProfile();
+		System.out.println();
 	}
 }

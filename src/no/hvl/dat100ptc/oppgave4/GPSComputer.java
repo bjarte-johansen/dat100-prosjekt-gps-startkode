@@ -14,22 +14,21 @@ import no.hvl.dat100ptc.TODO;
 public class GPSComputer {
 	private GPSPoint[] gpspoints;
 	
-	double[] speedValues_;
-	double[] distanceValues_;
-	double[] elevationValues_;
+	private double[] speedValues_;
+	private double[] distanceValues_;
+	private double[] elevationValues_;
 	
-	double[] speedRange_;
-	double[] elevationRange_;
-	double[] distanceRange_;
+	private double[] speedRange_;
+	private double[] elevationRange_;
+	private double[] distanceRange_;
 	
-	double totalDistance_;
-	double averageSpeed_;
+	private double totalDistance_;
+	private double averageSpeed_;
 	
-	double totalElevation_;
-	int totalTime_;
+	private double totalElevation_;
+	private int totalTime_;
 	
 	public GPSComputer(String filename) {
-
 		GPSData gpsdata = GPSDataFileReader.readGPSFile(filename);
 		gpspoints = gpsdata.getGPSPoints();
 
@@ -187,10 +186,10 @@ public class GPSComputer {
 	}
 	
 	public double getMinDistance() {
-		return elevationRange_[0];
+		return distanceRange_[0];
 	}
 	public double getMaxDistance() {
-		return elevationRange_[1];
+		return distanceRange_[1];
 	}	
 
 

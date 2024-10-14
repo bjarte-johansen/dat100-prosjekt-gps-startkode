@@ -30,7 +30,7 @@ class DoubleArrayGraphData{
 	}
 }
 
-public class DoubleArrayGraphRenderer{	
+public class DoubleArrayGraphRenderer{
 	// import nested class
 	public static class Data extends DoubleArrayGraphData{};
 	
