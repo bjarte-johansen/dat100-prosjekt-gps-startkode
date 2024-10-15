@@ -33,39 +33,22 @@ import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
 public class GPSApplication 
 {
-	// util
+	
+	GPSSpeedGraphRenderer speedRenderer;
+	GPSElevationGraphRenderer elevationRenderer;
+	GPSRouteRenderer routeRenderer;
+	
+	
+	// utility method
 	public void setPanelAllSizes(JPanel component, Dimension dim)
 	{
 		component.setPreferredSize(dim); 
         component.setMaximumSize(dim); 
         component.setMinimumSize(dim); 
 	}
-	
-	public JPanel createLabelBox(JLabel label) {
-        // Outer box
-        JPanel outerBox = new JPanel();
-        outerBox.setLayout(new BorderLayout());
-        
-        // Inner box
-        JPanel innerBox = new JPanel();
-        innerBox.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
 
-        // Label
-        label.setFont(new Font("Verdana", Font.PLAIN, 14));  // Set font size as needed
-        Dimension labelSize = label.getPreferredSize();
-        labelSize.width = 1920;
-        labelSize.height = 20;
-
-        // Add components
-        innerBox.add(label);
-        outerBox.add(innerBox, BorderLayout.CENTER);
-        
-        outerBox.setPreferredSize(labelSize); // Match height to text size
-        outerBox.setMaximumSize(labelSize); // Match height to text size
-        outerBox.setMinimumSize(labelSize); // Match height to text size
-        
-        return outerBox;
-	}
+	// create colorized labels that fit within BoxLayout, we dont know
+	// much about box layouts but this seems to work
 	
 	public JPanel createLabel(String message) {
 		return createLabel(message, Color.BLACK);
@@ -92,37 +75,71 @@ public class GPSApplication
         innerBox.add(label);
         outerBox.add(innerBox, BorderLayout.CENTER);
         
-        outerBox.setPreferredSize(labelSize); // Match height to text size
-        outerBox.setMaximumSize(labelSize); // Match height to text size
-        outerBox.setMinimumSize(labelSize); // Match height to text size
-        
+        setPanelAllSizes(outerBox, labelSize);
+                
         return outerBox;
 	}
 
 	public GPSApplication() 
 	{
+		/*
+		 * lager applikasjonen med 3 paneler, speedgraph, elevation graph og route-renderer-.
+		 * PS: dere trenger ikke lese denne koden, den er dårlig og bare hevet sammen
+		 * 
+		 * - vindu kan resizes
+		 * - [t] toggle regular/irregular sampling interval (intervall mellom gps punkter
+		 * er i utgangspunktet irregulært, t toggler resampling av verdier slik at doublearrays
+		 * av dem blir tids-korrekt, dvs at x-akse på speed/elevation-graph samstemmer med tid
+		 * - [c] toggle colorization
+		 * - [+] add 5 riders, 
+		 * - [-] remove 5 riders
+		 * 
+		 * rytter som vises på display er den seineste, som ligger i animatedProgressIndicators[0]
+		 * 
+		 * vi har kokt alt sammen til et enkelt vindu og viser alt samtidig siden dette oppfyller
+		 * målene med de forskjellige oppgavene. det er ingen poeng i å vise speedgraph i eget
+		 * vindu feks når man kan vise alle samtidig på paneler, det er bare et spørsmål om å skrive
+		 * mer kode
+		 * 
+		 * vi bruker paneler som har assignet hver sin callback til en renderer som renderer
+		 * til paneloverflaten via en bufferedimage
+		 * 
+		 * vi har bare fått til å vise ting riktig, vi hevder IKKE å at koden i GPSApplication
+		 * har effektiv kode, den kan i stor grad oversees, og bare kjøres
+		 * 
+		 * vi har måtte lære nye ting om JFrame, JPanel, JLabel og BoxLayout etc så det blir litt
+		 * så-som-så på førsteforsøk :)
+		 */
+		
 		int W_PAD = 8;
 		
-		// share GPSComputer amongst components
+		// create GPSComputer to share amongst component-renderers
 		GPSComputer sharedGpsComputer = new GPSComputer(App.gpsFilename);
 		
-		var speedRenderer = new GPSSpeedGraphRenderer(sharedGpsComputer);
-		var elevationRenderer = new GPSElevationGraphRenderer(sharedGpsComputer);
-		var routeRenderer = new GPSRouteRenderer(sharedGpsComputer);
+		// init component renderers
+		speedRenderer = new GPSSpeedGraphRenderer(sharedGpsComputer);
+		elevationRenderer = new GPSElevationGraphRenderer(sharedGpsComputer);
+		routeRenderer = new GPSRouteRenderer(sharedGpsComputer);
 		
 		System.out.println(Arrays.toString(sharedGpsComputer.getGPSPoints()));
 		System.out.println(Arrays.toString(sharedGpsComputer.getSpeedValues()));		
 		
+		// create window
         JFrame frame = new JFrame("GPS Fitness Tracker");
         
+        // configure default component border
         var componentBorder = BorderFactory.createLineBorder(GPSUI.Default.componentBorderColor);
   
-        // Add KeyAdapter to the JFrame
+        // Add KeyAdapter to the JFrame to listen for keyboard events
         frame.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 System.out.println("Key Pressed: " + KeyEvent.getKeyText(e.getKeyCode()));
-                if(e.getKeyChar() == 't') {
+                
+                char ch = e.getKeyChar();
+                
+                if(ch == 't') {
+                	// resample data for regular/irregular time intervals
                 	speedRenderer.resampleData = !speedRenderer.resampleData;
                 	speedRenderer.init();
                 	
@@ -130,12 +147,30 @@ public class GPSApplication
                 	elevationRenderer.init();
                 }
                 
-                if(e.getKeyChar() == 'c') {
+                if(ch == 'c') {
                 	GPSUI.Default.advancedColors = !GPSUI.Default.advancedColors; 
+                }
+                
+                if(ch == '+' || ch == '-') {
+                	int offset = 5;
+                	if(ch == '-') {
+                		offset = -offset;
+                	}
+                	
+                	int newNumberOfRiders = GPSUI.Default.numberOfRiders + offset;
+                	
+                	newNumberOfRiders = Math.clamp(newNumberOfRiders, 1, 10000);
+                	
+                	GPSUI.Default.numberOfRiders = newNumberOfRiders;
+                	
+                	// reinitialize route that instanciates progress indicators
+                	//routeRenderer.init();
                 }
             }
         });
 
+        // vi måtte prøve oss fram for å finne en måte å resize paneler på som
+        // faktisk fungerte. denne metoden er høyst sannsynligvis ikke den beste
 		var resizeAdapter = new ComponentAdapter() 
 		{
 			@Override
@@ -154,10 +189,13 @@ public class GPSApplication
 		container.setBorder(new EmptyBorder(W_PAD, W_PAD, W_PAD, W_PAD));
 		
 		container.add(createLabel("Viktig melding:", Color.RED));
-		container.add(createLabel("[t] toggle regular interval, [c] toggle colorization", Color.RED));		
+		container.add(createLabel("[t] toggle regular interval, [c] toggle colorization, [+] add 5 riders, [-] remove 5 riders", Color.RED));		
         container.add(Box.createVerticalStrut(10));		
 		
 		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+		
+		// vi bruker scopes til følgende selv om det ikke er nødvendig eller
+		// strengt talt ønskeligt, det er for å tydeligjøre kode bare
 		
 		// speed
 		{

@@ -2,6 +2,11 @@ package no.hvl.dat100ptc;
 
 /*
  * IntPoint2D
+ * - constructors
+ * 		- default/no-args
+ * 		- int, int
+ * 		- double, double
+ * 		- copy-constructor
  */
 
 public class IntPoint2D{

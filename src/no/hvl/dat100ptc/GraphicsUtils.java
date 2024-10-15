@@ -4,10 +4,12 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 
 public class GraphicsUtils{
+	// create copy of Color object
 	public static Color copyColor(Color c) {
 		return new Color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
 	}
 
+	// create randomized color
 	public static Color createRandomColor() {
 		return new Color(
 			(int)(Math.random() * 255),
@@ -16,14 +18,16 @@ public class GraphicsUtils{
 			);
 	}
 	
+	// clamp to c-type byte [0 .. 255], note: NOT a java byte
 	public static int clampByte(int val) {
 		if(val < 0)
 			val = 0;
 		if(val > 255)
 			val = 255;
-		return (int) val;
+		return val;
 	}
 
+	// linearly interpolate between two colors using int [0 .. 255] or float [0.0 .. 1.0]
 	public static Color lerpColorRGBA(double alpha, Color c1, Color c2) {
 		int byteAlpha = (int)(alpha * 255);
 		return lerpColorRGBA(byteAlpha, c1, c2);
@@ -40,6 +44,7 @@ public class GraphicsUtils{
 		return new Color(r, g, b, a);
 	}
 	
+	// draw/fill circle
 	public static void drawCircle(Graphics2D ctx, int x, int y, int radius) {
 		ctx.drawOval(x - radius, y - radius, radius * 2, radius * 2);
 	}

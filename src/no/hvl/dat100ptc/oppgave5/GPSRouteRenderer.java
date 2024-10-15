@@ -42,6 +42,8 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 	private double currentDistance;
 	private double segmentDistance;
 	
+	public double segmentSpeed;
+	
 	public double animationSpeed = 70.0;
 					
 	AnimatedProgressIndicator(GPSComputer comp, GPSRouteRenderer renderer){
@@ -64,7 +66,7 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 			currentDistance = 0.0;
 		}
 
-		double segmentSpeed;
+		//double segmentSpeed;
 
 		GPSPoint p0 = gpspoints[segmentIndex];
 		GPSPoint p1 = gpspoints[segmentIndex + 1];
@@ -140,26 +142,25 @@ class GPSRouteRenderer{
 	private GPSPointMapper gpsPointMapper; 
 	
 	public GPSRouteRenderer(GPSComputer computer) {
+		// comments ..
 		gpscomputer = computer;
 		gpspoints = gpscomputer.getGPSPoints();
+		
+		// init gps point mapper		
+		gpsPointMapper = new GPSPointMapper(gpscomputer, MAPYSIZE, MAPXSIZE);		
 			
 		init();
 	}
 	
 	public void init() {
-		// init gps point mapper
-		gpsPointMapper = new GPSPointMapper(gpscomputer, MAPYSIZE, MAPXSIZE);
-		
 		// update R (our bounds)
 		R = new IntRectangle(MARGIN, MARGIN, MAPXSIZE, MAPYSIZE);
-		
-		// Color[] colors = (new Color[] {Color.blue, Color.magenta, Color.orange});
 		
 		double currentAnimationSpeed = 20.0;
 		double animationSpeedOffset = 1.0;
 		double animationSpeedRandomAmount = 1.0;
 		
-		int numIndicators = 10;
+		int numIndicators = GPSUI.Default.numberOfRiders;
 		
 		// allocate create progress indicator objects
 		animatedProgressIndicator = new AnimatedProgressIndicator[numIndicators];
@@ -197,6 +198,12 @@ class GPSRouteRenderer{
 	}	
 
 	public void render(Graphics2D ctx, int w, int h) {
+		// reinitialize if wanted number of riders have changed, could probably
+		// reinit on keypresses to change number but not useful.
+		if(GPSUI.Default.numberOfRiders != animatedProgressIndicator.length) {
+			init();
+		}
+		
 		// update frametimer
 		frameTimer.update();
 
@@ -207,8 +214,11 @@ class GPSRouteRenderer{
 		// leave if less than 2 points
 		if(gpspoints.length < 2) { return; }
 
-		// render route
-		renderRouteMap(ctx);
+		// render route lines
+		renderRouteLines(ctx);
+		
+		// render route waypoints
+		renderRouteWaypoints(ctx);		
 
 		// render endpoints		
 		showRouteEndPoints(ctx);			
@@ -220,6 +230,7 @@ class GPSRouteRenderer{
 		renderRouteReplay(ctx);
 	}
 
+	// 
 	public void showRouteEndPoints(Graphics2D ctx) {		
 		IntPoint2D p;
 		
@@ -239,7 +250,7 @@ class GPSRouteRenderer{
 		GraphicsUtils.drawCircle(ctx, p.x,  p.y, GPSUI.Route.endpointIndicatorSize / 3 * 1);
 	}
 
-	public void renderRouteMap(Graphics2D ctx) {
+	public void renderRouteLines(Graphics2D ctx) {
 		int n = gpspoints.length;
 		
 		IntPoint2D cur = gpsPointToDrawSpace(gpspoints[0]);
@@ -257,6 +268,13 @@ class GPSRouteRenderer{
 			
 			cur = next;	
 		}
+	
+	}
+	
+	public void renderRouteWaypoints(Graphics2D ctx) {
+		int n = gpspoints.length;
+		
+		IntPoint2D cur;
 		
 		// render waypoints, separated into two bulks because we want correct
 		// segmentcolor the last waypoint as well, didnt try to optimize
@@ -264,15 +282,15 @@ class GPSRouteRenderer{
 			var p0 = gpspoints[i - 1];
 			var p1 = gpspoints[i];
 			
-			next = gpsPointToDrawSpace(p0);			
+			cur = gpsPointToDrawSpace(p0);			
 			ctx.setColor(getRouteSegmentColor(p0, p1));			
-			GraphicsUtils.fillCircle(ctx, next.x,  next.y, GPSUI.Route.wapointIndicatorSize);
+			GraphicsUtils.fillCircle(ctx, cur.x,  cur.y, GPSUI.Route.wapointIndicatorSize);
 		}	
 		
 		// render last waypoint
-		next = gpsPointToDrawSpace(getGPSPoint(-1));
+		cur = gpsPointToDrawSpace(getGPSPoint(-1));
 		ctx.setColor(getRouteSegmentColor(getGPSPoint(-2), getGPSPoint(-1)));			
-		GraphicsUtils.fillCircle(ctx, next.x,  next.y, 3);			
+		GraphicsUtils.fillCircle(ctx, cur.x,  cur.y, 3);		
 	}
 	
 	public void renderRouteReplay(Graphics2D ctx) {
@@ -282,21 +300,37 @@ class GPSRouteRenderer{
 			animatedProgressIndicator[i].advance(frameTimer.elapsedTime());
 		}		
 	}
-
-	public void renderStatistics(Graphics2D ctx) {
+	
+	public void renderStatisticsLine(Graphics2D ctx, int lineNumber, String msg) {
 		int TEXTDISTANCE = 20;
+		
+		ctx.drawString(msg, R.getMinX(), R.getMinY() + TEXTDISTANCE * lineNumber);		
+	}
+	
+	public void renderStatistics(Graphics2D ctx) {
+		int numExtraLines = 2;
+		
+		String s = gpscomputer.getDisplayStatistics();
+		String[] lines = s.split("\n");
 
 		ctx.setColor(GPSUI.Route.textBgColor);
-		ctx.fillRect(R.getMinX() - 8, R.getMinY() - 16, 240, 126);
+		ctx.fillRect(R.getMinX() - 8, R.getMinY() - 16, 240, (lines.length + numExtraLines) * 20);
 
 		ctx.setColor(GPSUI.Route.textFgColor);
 		ctx.setFont(GPSUI.Route.font);
 
-		String s = gpscomputer.getDisplayStatistics();
-		String[] lines = s.split("\n");
+
 		
 		for(int i=0; i<lines.length; i++) {
-			ctx.drawString(lines[i], R.getMinX(), R.getMinY() + TEXTDISTANCE * i);
+			renderStatisticsLine(ctx, i, lines[i]);
 		}
+
+		String msg;
+		
+		msg = GPSComputer.formatStatsString("Speed", animatedProgressIndicator[0].segmentSpeed * 3.6, "km/t");
+		renderStatisticsLine(ctx, lines.length, msg);
+		
+		msg = GPSComputer.formatStatsString("Riders", String.format("%s", animatedProgressIndicator.length), "");
+		renderStatisticsLine(ctx, lines.length + 1, msg);		
 	}
 }

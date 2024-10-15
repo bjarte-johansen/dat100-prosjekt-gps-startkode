@@ -15,6 +15,7 @@ class GPSUI{
 		static Color fgColor = Color.decode("#333333");
 		
 		static boolean advancedColors = true;
+		static int numberOfRiders = 10;
 	}
 	
 	public class Route{

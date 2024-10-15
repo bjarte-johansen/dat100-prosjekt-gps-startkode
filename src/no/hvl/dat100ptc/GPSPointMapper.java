@@ -4,6 +4,11 @@ import no.hvl.dat100ptc.oppgave1.GPSPoint;
 import no.hvl.dat100ptc.oppgave3.GPSUtils;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
+/*
+ * responsibility for mapping GPS coordinates to pixels moved out of main code
+ * - important parts are mapX and mapY functions that actually does the mapping
+ */
+
 public class GPSPointMapper{
 	private GPSComputer gpscomputer;
 	
@@ -38,7 +43,7 @@ public class GPSPointMapper{
 		ystep = scale(mapHeight, minlat, maxlat);	
 	}
 	
-	public double scale(int maxsize, double minval, double maxval) {
+	protected double scale(int maxsize, double minval, double maxval) {
 		double divisor = Math.abs(maxval - minval);
 		if(divisor < 1e-10) {
 			throw new IllegalArgumentException("(maxval - minval) must be greater than epsilon");

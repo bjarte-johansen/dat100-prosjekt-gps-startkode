@@ -110,7 +110,7 @@ public class IrregularTimeValueSeriesResampler {
 			}
 
 			// resample value
-			if(currentIndex == 0 || currentIndex + 1 >= data.length) 
+			if(currentIndex + 1 >= data.length) 
 			{
 				resampled[i] = data[data.length - 1].value;
 			}

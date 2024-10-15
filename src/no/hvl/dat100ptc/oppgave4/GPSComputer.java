@@ -280,18 +280,27 @@ public class GPSComputer {
 		System.out.print(getDisplayStatistics());
 		System.out.println(SEP);
 	}
-	
+
+	public static String formatStatsFloat(double val) {
+		return String.format("%10.2f", val);
+	}
+	public static String formatStatsString(String title, String value, String unit) {
+		return String.format("%-15s: %10s %-5s\n", title, value, unit);
+	}
+	public static String formatStatsString(String title, double value, String unit) {
+		return formatStatsString(title, formatStatsFloat(value), unit);
+	}	
 	public String getDisplayStatistics() {
 		double weight = 80;
 		
 		String s = "";		
-		s += String.format("%-15s: %10s %-5s\n", "Total Time", GPSUtils.formatTime(totalTime()), "");
-		s += String.format("%-15s: %10.2f %-5s\n", "Total distance", totalDistance() / 100, "km");
-		s += String.format("%-15s: %10.2f %-5s\n", "Total elevation", totalElevation(), "m");
-		s += String.format("%-15s: %10.2f %-5s\n", "Max speed", maxSpeed() * 3.6, "km/t");
-		s += String.format("%-15s: %10.2f %-5s\n", "Average speed", averageSpeed() * 3.6, "km/t");
-		s += String.format("%-15s: %10.2f %-5s\n", "Energy", totalKcal(weight), "kcal");
-		
+		s += formatStatsString("Total Time", GPSUtils.formatTime(totalTime()), "");
+		s += formatStatsString("Total distance", totalDistance() / 1000, "km");
+		s += formatStatsString("Total elevation", totalElevation(), "m");
+		s += formatStatsString("Max speed", maxSpeed() * 3.6, "km/t");		
+		s += formatStatsString("Average speed", averageSpeed() * 3.6, "km/t");			
+		s += formatStatsString("Energy", totalKcal(weight), "kcal");		
+
 		return s;
 	}
 

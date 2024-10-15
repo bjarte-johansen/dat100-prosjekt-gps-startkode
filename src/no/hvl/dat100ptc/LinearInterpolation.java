@@ -3,7 +3,7 @@ package no.hvl.dat100ptc;
 public class LinearInterpolation{
 	private LinearInterpolation() {}
 	
-	public static double interpolate(double pos, double a, double b){				
+	public static double interpolate(double pos, double a, double b){
 		return a + (b - a) * pos;
 	}
 	
