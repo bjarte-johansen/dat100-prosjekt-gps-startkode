@@ -22,71 +22,8 @@ import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
 /*
  * 
- */
-
-class GPSUI{
-	public class Default{
-		
-		static Color componentBorderColor = Color.decode("#CCCCCC");
-		
-		static Color bgColor = Color.decode("#FFFFFF");
-		static Color fgColor = Color.decode("#333333");
-	}
-	
-	public class Route{
-		// 
-		static int lineSize = 2;
-		
-		// uphill / downhill line (also used for up/down waypoint)
-		static Color routeDownhillColor = new Color(0,200,0);
-		static Color routeSecondDownhillColor = new Color(0,100,0);
-		static Color routeUphillColor = new Color(200,0,0);
-		static Color routeSecondUphillColor = new Color(100,0,0);
-		
-		// endpoint
-		static Color endpointIndicatorColor = new Color(100,100,100,200);
-		static int endpointIndicatorSize = 16;
-		static int endpointIndicatorStrokeSize = 3;
-		
-		// waypoint
-		static int wapointIndicatorSize = 4;
-		static int waypointIndicatorType = 0;
-		
-		// progress
-		static Color progressIndicatorColor = ColorUtils.niceBlue;
-		static int progressIndicatorSize = 7;	
-		
-		// text
-		static Color textBgColor = new Color(255,255,255,200);
-		static Color textFgColor = new Color(50,50,50);
-		static Font font = new Font("Courier new", Font.ITALIC, 12);
-		
-	}
-	
-	public class SpeedGraph{
-		static Color foregroundColor = GraphicsUtils.copyColor(ColorUtils.niceBlue);
-		
-		static int averageSpeedIndicatorSize = 2;
-		static Color averageSpeedIndicatorColor = new Color(255,50,50,200);
-		
-		static int progressIndicatorSize = 2;
-		static Color progressIndicatorColor = new Color(255,255,255,220);
-		
-		static boolean SHOW_SPEED_AS_COLOR = true;
-	}
-	
-	public class ElevationGraph{
-		static Color foregroundColor = GraphicsUtils.copyColor(ColorUtils.niceBlue);
-		
-		static int progressIndicatorSize = SpeedGraph.progressIndicatorSize;
-		static Color progressIndicatorColor = GraphicsUtils.copyColor(SpeedGraph.progressIndicatorColor);		
-	}	
-}
-
-
-
-/*
- * 
+ * App.GPSUIProgressIndicator has the shared methods ?etTrackingColor and ?etTrackingPos
+ * which is why we can share them amongst the elevation/speed/route renderers
  */
 
 class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
@@ -158,8 +95,8 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 		
 		ctx.setStroke(new BasicStroke(1));
 		
-		GPSPoint p0 = gpspoints[segmentIndex];
-		GPSPoint p1 = gpspoints[segmentIndex + 1];		
+		//GPSPoint p0 = gpspoints[segmentIndex];
+		//GPSPoint p1 = gpspoints[segmentIndex + 1];		
 	
 		ctx.setColor(getTrackingColor());
 		//ctx.setColor(GraphicsUtils.lerpColorRGBA(1.0-GPSUtils.speed(p0, p1)/gpscomputer.getMaxSpeed(), Color.red, Color.black));
@@ -190,18 +127,26 @@ class GPSRouteRenderer{
 	private GPSComputer gpscomputer;
 	private GPSPoint[] gpspoints;	
 	
+	// rectangle to render in
 	private IntRectangle R; 
 	
+	// declare shared animated progress indicator
 	public AnimatedProgressIndicator[] animatedProgressIndicator;
 	
+	// frametimer for animation
 	private ElapsedTimer frameTimer = new ElapsedTimer();
 	
+	// move gpspointmapping responsibility to GPSPointMapper
 	private GPSPointMapper gpsPointMapper; 
 	
-	public GPSRouteRenderer() {
-		gpscomputer = new GPSComputer(App.gpsFilename);
+	public GPSRouteRenderer(GPSComputer computer) {
+		gpscomputer = computer;
 		gpspoints = gpscomputer.getGPSPoints();
 			
+		init();
+	}
+	
+	public void init() {
 		// init gps point mapper
 		gpsPointMapper = new GPSPointMapper(gpscomputer, MAPYSIZE, MAPXSIZE);
 		
@@ -228,7 +173,7 @@ class GPSRouteRenderer{
 		}
 		
 		// restart frametimer
-		frameTimer.restart();		
+		frameTimer.restart();	
 	}
 
 	public GPSPoint getGPSPoint(int index) {
@@ -305,7 +250,7 @@ class GPSRouteRenderer{
 		for(int i=1; i<n; i++) {
 			var p0 = gpspoints[i - 1];
 			var p1 = gpspoints[i];
-			
+
 			next = gpsPointToDrawSpace(p1);
 			ctx.setColor(getRouteSegmentColor(p0, p1));
 			ctx.drawLine(cur.x, cur.y, next.x, next.y);
@@ -313,17 +258,18 @@ class GPSRouteRenderer{
 			cur = next;	
 		}
 		
-		// render dots
+		// render waypoints, separated into two bulks because we want correct
+		// segmentcolor the last waypoint as well, didnt try to optimize
 		for(int i=1; i<n; i++) {
 			var p0 = gpspoints[i - 1];
 			var p1 = gpspoints[i];
 			
-			next = gpsPointToDrawSpace(p0);
+			next = gpsPointToDrawSpace(p0);			
 			ctx.setColor(getRouteSegmentColor(p0, p1));			
 			GraphicsUtils.fillCircle(ctx, next.x,  next.y, GPSUI.Route.wapointIndicatorSize);
 		}	
 		
-		// render last point
+		// render last waypoint
 		next = gpsPointToDrawSpace(getGPSPoint(-1));
 		ctx.setColor(getRouteSegmentColor(getGPSPoint(-2), getGPSPoint(-1)));			
 		GraphicsUtils.fillCircle(ctx, next.x,  next.y, 3);			

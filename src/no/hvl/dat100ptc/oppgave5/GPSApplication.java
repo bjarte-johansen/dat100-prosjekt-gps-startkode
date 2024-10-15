@@ -1,6 +1,7 @@
 package no.hvl.dat100ptc.oppgave5;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -8,6 +9,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Arrays;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -17,7 +19,17 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
+import no.hvl.dat100ptc.App;
 import no.hvl.dat100ptc.CustomPanelRenderer;
+import no.hvl.dat100ptc.oppgave4.GPSComputer;
+
+
+/*
+ * Classes are mostly stored in no.hvl.dat100ptc
+ * - The project uses a total of 17 added classes in no.hvl.dat100ptc package
+ * - Additional classes are GPSApplication and GPSUI which are in no.hvl.dat100ptc.oppgave5
+ * - Oppgave 5 and 6 are intertwined
+ */
 
 public class GPSApplication 
 {
@@ -29,7 +41,36 @@ public class GPSApplication
         component.setMinimumSize(dim); 
 	}
 	
-	public JPanel createLabel(String message) 
+	public JPanel createLabelBox(JLabel label) {
+        // Outer box
+        JPanel outerBox = new JPanel();
+        outerBox.setLayout(new BorderLayout());
+        
+        // Inner box
+        JPanel innerBox = new JPanel();
+        innerBox.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+
+        // Label
+        label.setFont(new Font("Verdana", Font.PLAIN, 14));  // Set font size as needed
+        Dimension labelSize = label.getPreferredSize();
+        labelSize.width = 1920;
+        labelSize.height = 20;
+
+        // Add components
+        innerBox.add(label);
+        outerBox.add(innerBox, BorderLayout.CENTER);
+        
+        outerBox.setPreferredSize(labelSize); // Match height to text size
+        outerBox.setMaximumSize(labelSize); // Match height to text size
+        outerBox.setMinimumSize(labelSize); // Match height to text size
+        
+        return outerBox;
+	}
+	
+	public JPanel createLabel(String message) {
+		return createLabel(message, Color.BLACK);
+	}
+	public JPanel createLabel(String message, Color c) 
 	{
         // Outer box
         JPanel outerBox = new JPanel();
@@ -42,6 +83,7 @@ public class GPSApplication
         // Label
         JLabel label = new JLabel(message);
         label.setFont(new Font("Verdana", Font.PLAIN, 14));  // Set font size as needed
+        label.setForeground(c);
         Dimension labelSize = label.getPreferredSize();
         labelSize.width = 1920;
         labelSize.height = 20;
@@ -61,9 +103,15 @@ public class GPSApplication
 	{
 		int W_PAD = 8;
 		
-		var speedRenderer = new GPSSpeedGraphRenderer();
-		var elevationRenderer = new GPSElevationGraphRenderer();
-		var routeRenderer = new GPSRouteRenderer();
+		// share GPSComputer amongst components
+		GPSComputer sharedGpsComputer = new GPSComputer(App.gpsFilename);
+		
+		var speedRenderer = new GPSSpeedGraphRenderer(sharedGpsComputer);
+		var elevationRenderer = new GPSElevationGraphRenderer(sharedGpsComputer);
+		var routeRenderer = new GPSRouteRenderer(sharedGpsComputer);
+		
+		System.out.println(Arrays.toString(sharedGpsComputer.getGPSPoints()));
+		System.out.println(Arrays.toString(sharedGpsComputer.getSpeedValues()));		
 		
         JFrame frame = new JFrame("GPS Fitness Tracker");
         
@@ -74,12 +122,16 @@ public class GPSApplication
             @Override
             public void keyPressed(KeyEvent e) {
                 System.out.println("Key Pressed: " + KeyEvent.getKeyText(e.getKeyCode()));
-                if(e.getKeyCode() == KeyEvent.VK_SPACE) {
+                if(e.getKeyChar() == 't') {
                 	speedRenderer.resampleData = !speedRenderer.resampleData;
                 	speedRenderer.init();
                 	
                 	elevationRenderer.resampleData = !elevationRenderer.resampleData;
                 	elevationRenderer.init();
+                }
+                
+                if(e.getKeyChar() == 'c') {
+                	GPSUI.Default.advancedColors = !GPSUI.Default.advancedColors; 
                 }
             }
         });
@@ -100,6 +152,10 @@ public class GPSApplication
 		
 		var container = new JPanel();
 		container.setBorder(new EmptyBorder(W_PAD, W_PAD, W_PAD, W_PAD));
+		
+		container.add(createLabel("Viktig melding:", Color.RED));
+		container.add(createLabel("[t] toggle regular interval, [c] toggle colorization", Color.RED));		
+        container.add(Box.createVerticalStrut(10));		
 		
 		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 		

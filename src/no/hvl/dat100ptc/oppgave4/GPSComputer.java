@@ -11,6 +11,14 @@ import java.util.Arrays;
 
 import no.hvl.dat100ptc.TODO;
 
+/*
+public class ObjectArray<T>{
+	T[] arr;
+	
+	public int size() { return arr.length; }
+}
+*/
+
 public class GPSComputer {
 	private GPSPoint[] gpspoints;
 	

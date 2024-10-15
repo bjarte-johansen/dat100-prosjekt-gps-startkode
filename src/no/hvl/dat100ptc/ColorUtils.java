@@ -14,14 +14,17 @@ public class ColorUtils{
 	public static final Color textColor = new Color(50,50,50);
 	public static final Color textBackground = new Color(255,255,255,200);
 	
-	public Color createRandomColor() {
+	public Color createRandomColor() 
+	{
 		return new Color(
 			(int)(Math.random()*255),
 			(int)(Math.random()*255),
 			(int)(Math.random()*255)
 			);
 	}
-	public Color createRandomGrayscaleColor() {
+	
+	public Color createRandomGrayscaleColor() 
+	{
 		int v = (int)(Math.random()*255); 
 		return new Color(v, v, v);
 	}		

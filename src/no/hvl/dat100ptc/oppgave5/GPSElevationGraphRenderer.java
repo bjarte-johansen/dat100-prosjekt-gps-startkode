@@ -16,7 +16,7 @@ import no.hvl.dat100ptc.oppgave2.GPSDataFileReader;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
  
-class GPSElevationGraphRenderer
+public class GPSElevationGraphRenderer
 {
 	private static int MARGIN = 4;
 
@@ -31,9 +31,9 @@ class GPSElevationGraphRenderer
 	
 	public boolean resampleData;
 	
-	public GPSElevationGraphRenderer()
+	public GPSElevationGraphRenderer(GPSComputer computer)
 	{
-		gpscomputer = new GPSComputer(App.gpsFilename);
+		gpscomputer = computer;
 		
 		init();
 	}
@@ -44,10 +44,12 @@ class GPSElevationGraphRenderer
 		var dataValues = gpscomputer.getElevationValues();
 
 		// create time-value series
-		var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
+		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
+		
+		//var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
 		for(int i=0; i<data.length; i++) {
-			data.times[i] = gpspoints[i].getTime();
-			data.values[i] = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
+			data[i].time = gpspoints[i].getTime();
+			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
 		}
 
 		// resample timeseries to regularly spaced values
@@ -79,10 +81,32 @@ class GPSElevationGraphRenderer
 		R = new IntRectangle(MARGIN, MARGIN, w - MARGIN * 2, h - MARGIN * 2);
 
 		// leave if less than 2 points
-		if(graphData.numValues == 0) return;
+		if(graphData.numValues == 0) { return; }
 
 		// render graph
-		renderGraph(ctx);
+        ctx.setStroke(new BasicStroke(1));
+        ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
+		
+		DoubleArrayGraphRenderer.render(ctx, R, graphData, (pos) -> {
+			if(!GPSUI.Default.advancedColors) {
+				return;
+			}
+			
+			// colorizing is buggy and leftover from debugging, its kinda nice though
+			int intPos = (int)(pos * graphData.numValues);
+			double v0 = graphData.getValueAtIndexedPos(intPos);
+			double v1 = graphData.getValueAtIndexedPos((double) intPos + 1);
+			
+			double valueDelta = (v1 - v0);
+			double normValueDelta = (Math.abs(valueDelta) / graphData.max) * 21;
+			
+			// colorize according to acceleration
+			if((valueDelta >= 0.0)) {
+				ctx.setColor(GraphicsUtils.lerpColorRGBA(1 - normValueDelta, GPSUI.SpeedGraph.acceleratingColor1, GPSUI.SpeedGraph.acceleratingColor2));
+			}else {
+				ctx.setColor(GraphicsUtils.lerpColorRGBA(1 - normValueDelta, GPSUI.SpeedGraph.deceleratingColor1, GPSUI.SpeedGraph.deceleratingColor2));
+			}
+		});
 		
 		// render progress indicators
 		renderAnimatedProgressIndicators(ctx);	
@@ -105,52 +129,5 @@ class GPSElevationGraphRenderer
 			int x = (int)(indicator.getTrackingPosition() * R.getWidth());
 			ctx.drawLine(x, R.getMinY(), x, R.getMaxY());
 		}
-	}
-	
-	private void renderGraph(Graphics2D ctx) 
-	{
-		// draw graph
-        ctx.setStroke(new BasicStroke(1));
-        ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
-        
-		//DoubleArrayGraphRenderer.render(ctx, R, graphData);
-        
-        IntRectangle bounds = R;
-        
-		double val;		
-		double pos = 0.0;
-		double delta = 1.0 / bounds.width;
-		double verticalScaleFactor = DoubleArrayGraphRenderer.getGraphVerticalScale(graphData, bounds);
-			
-		Color currentColor;		
-		double previousValue = DoubleArrayGraphRenderer.getGraphFloatValueAt(0.0, graphData) * verticalScaleFactor;
-		
-		for(int i=0; i<bounds.width; i++) {
-			val = DoubleArrayGraphRenderer.getGraphFloatValueAt(pos, graphData) * verticalScaleFactor;
-			
-			{
-				double diffValue = (val - previousValue);
-				boolean uphill = (diffValue >= 0.0);
-				double normalizedDiffValue = Math.abs(diffValue) / graphData.max;
-				
-				if(uphill) {
-					currentColor = GraphicsUtils.lerpColorRGBA(normalizedDiffValue * 100, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor);
-				}else {
-					currentColor = GraphicsUtils.lerpColorRGBA(normalizedDiffValue * 100, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor);					
-				}
-				ctx.setColor(currentColor);
-				
-				previousValue = val;
-			}		
-			
-			int x = bounds.getMinX() + i;
-			int y = bounds.getMaxY() - (int) val;
-				
-			ctx.drawLine(x, bounds.getMaxY(), x, y);
-			
-			pos += delta;			
-		}   
-		
-		System.out.println();
 	}
 }

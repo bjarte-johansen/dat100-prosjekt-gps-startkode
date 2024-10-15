@@ -1,28 +1,37 @@
 package no.hvl.dat100ptc;
 
-import no.hvl.dat100ptc.IrregularTimeValueSeriesResampler.Data;
+import no.hvl.dat100ptc.IrregularTimeValueSeriesResampler.DataPoint;
+
+import java.lang.reflect.Array;
+
+class ArrayUtils {
+    public static <T> T[] createArray(Class<T> clazz, int size) {
+        @SuppressWarnings("unchecked")
+        T[] array = (T[]) Array.newInstance(clazz, size);
+        
+        try {
+            for (int i = 0; i < size; i++) {
+                array[i] = clazz.getDeclaredConstructor().newInstance();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to instantiate elements", e);
+        }
+        
+        return array;
+    }
+}
 
 public class IrregularTimeValueSeriesResampler {
-	public interface DataCallback{
-		boolean accept(double time, double value, double target_time);
+	interface DataCallback{
+		boolean accept(DataPoint p, double target_time);
 	}
 	
-	public static class Data
-	{
-		public double[] times;
-		public double[] values;
-		public int length;
+	public static class DataPoint{
+		public double time;
+		public double value;
 		
-		public Data(int n) 
-		{
-			resize(n);
-		}
-		
-		public void resize(int n) 
-		{
-			times = new double[n];
-			values = new double[n];
-			length = n;
+		public static DataPoint[] createArray(int n) {
+			return ArrayUtils.createArray(DataPoint.class, n);
 		}
 	}
 	
@@ -44,9 +53,9 @@ public class IrregularTimeValueSeriesResampler {
 	// return index to element before first that satifies criteria, or index - 1 to item that does not satisfy
 	// - if first element satisfies 
 	// - if not found, return length - 1
-	public static int upper_bound(Data data, int startIndex, double target_time, DataCallback fnCompare) {
+	public static int upper_bound(DataPoint data, int startIndex, double target_time, DataCallback fnCompare) {
 		for(int i=startIndex; i<data.length; i++) {
-			if(!fnCompare.accept(data.times[i], data.values[i], target_time)) {
+			if(!fnCompare.accept(data[i], target_time)) {
 				return i - 1;
 			}
 		}
@@ -55,9 +64,8 @@ public class IrregularTimeValueSeriesResampler {
 	}
 	*/
 	
-	public static double[] resample(Data data, int new_length) 
+	public static double[] resample(DataPoint[] data, int new_length) 
 	{
-		/*
 		if(new_length == 0) 
 		{
 			throw new IllegalArgumentException("output length must be greater than 0");
@@ -66,21 +74,21 @@ public class IrregularTimeValueSeriesResampler {
 		{
 			throw new IllegalArgumentException("input length must be greater than 0");
 		}
-		*/
 		
-		double startTime = data.times[0];
-		double endTime = data.times[data.length - 1];
+		double startTime = data[0].time;
+		double endTime = data[data.length - 1].time;
 		double interval = (endTime - startTime) / (new_length);	// debug, why -1?	
 		double maxValue;
 		double targetTime;
-		int currentIndex = 0;		
-		
+		int currentIndex = 0;
+		//double t0, t1, v0, v1;		
+
 		//System.out.printf("startTime: %.2f, endTime: %.2f, interval: %.2f\n", startTime, endTime, interval);
 		
 		if(Math.abs(endTime - startTime) < 1e-9) 
 		{
 			throw new IllegalArgumentException("time-range must be greater than 0");
-		}		
+		}
 		
 		// allocate memory
 		double[] resampled = new double[new_length];
@@ -95,28 +103,28 @@ public class IrregularTimeValueSeriesResampler {
 			maxValue = Double.MIN_VALUE;
 			
 			// find max value within now .. next
-			while((currentIndex < data.length - 1) && (data.times[currentIndex + 1] < targetTime)) 
+			while((currentIndex < data.length - 1) && (data[currentIndex + 1].time < targetTime)) 
 			{
-				maxValue = Math.max(maxValue,  data.values[currentIndex + 1]);
+				maxValue = Math.max(maxValue,  data[currentIndex + 1].value);
 				currentIndex++;
 			}
-				
+
 			// resample value
 			if(currentIndex == 0 || currentIndex + 1 >= data.length) 
 			{
-				resampled[i] = data.values[data.length - 1];			
-			}			
+				resampled[i] = data[data.length - 1].value;
+			}
 			else 
 			{
-				double t0 = data.times[currentIndex];
-				double t1 = data.times[currentIndex + 1];
-				
-				double v0 = data.values[currentIndex];
-				double v1 = data.values[currentIndex + 1];
-				
-				resampled[i] = interpolate(t0, v0, t1, v1, targetTime);
+				resampled[i] = interpolate(
+					data[currentIndex].time, 
+					data[currentIndex].value, 
+					data[currentIndex + 1].time, 
+					data[currentIndex + 1].value, 
+					targetTime
+					);
 			}
-			
+
 			// take max of resampled and found max value
 			resampled[i] = Math.max(maxValue, resampled[i]);
 		}

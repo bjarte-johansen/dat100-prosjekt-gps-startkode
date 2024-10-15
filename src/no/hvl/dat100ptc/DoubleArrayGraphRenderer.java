@@ -1,6 +1,7 @@
 package no.hvl.dat100ptc;
 
 import java.awt.Graphics2D;
+import java.util.function.DoubleConsumer;
 
 import no.hvl.dat100ptc.DoubleArrayGraphRenderer.Data;
 
@@ -49,6 +50,9 @@ public class DoubleArrayGraphRenderer{
 	
 	// render
 	public static void render(Graphics2D ctx, IntRectangle bounds, Data graphData) {
+		render(ctx, bounds, graphData, null);
+	}
+	public static void render(Graphics2D ctx, IntRectangle bounds, Data graphData, DoubleConsumer beforeDrawLine) {
 		double val;		
 		double pos = 0.0;
 		double delta = 1.0 / bounds.width;
@@ -59,6 +63,10 @@ public class DoubleArrayGraphRenderer{
 			
 			int x = bounds.getMinX() + i;
 			int y = bounds.getMaxY() - (int) val;
+			
+			if(beforeDrawLine != null) {
+				beforeDrawLine.accept(pos);
+			}
 				
 			ctx.drawLine(x, bounds.getMaxY(), x, y);
 			

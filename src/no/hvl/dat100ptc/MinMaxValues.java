@@ -15,7 +15,7 @@ public class MinMaxValues {
 			}
 			this.min = vals[0];
 			this.max = vals[1];
-		}		
+		}
 		
 		public double getMin() {
 			return min;

@@ -19,34 +19,51 @@ public class GPSUtils {
 		return DoubleArray.of(da).min();
 	}
 
+	
+	// we didnt like the naming for these so these just call the
+	// actual implementation below, use ctrl-click to "go to" it 
+	public static double[] getLongitudes(GPSPoint[] gpspoints) {	
+		return getLongitudeValues(gpspoints);
+	}		
+	public static double[] getLatitudes(GPSPoint[] gpspoints) {
+		return getLatitudeValues(gpspoints);
+	}	
+	
+	// actual implementation for getL***tudes
+	// - use methods that map gpspoints to double value with 
+	// GPSPoint::methodReference to reduce errors and code
+	// - may cause slight performance-reduction if code is not inlined
 	public static double[] getLatitudeValues(GPSPoint[] gpspoints) {
 		return mapGpsPointsToDouble(gpspoints, GPSPoint::getLatitude);
 	}
-
 	public static double[] getLongitudeValues(GPSPoint[] gpspoints) {
 		return mapGpsPointsToDouble(gpspoints, GPSPoint::getLongitude);
 	}
+	
 
+	// map using callback, double[i] = (GPSPoint[i])	
 	public static double[] mapGpsPointsToDouble(GPSPoint[] gpspoints, MapGpsPointToDouble callback) {
 		int n = gpspoints.length;
 		if(n == 0) {
-			throw new IllegalArgumentException("gpspoints must have at least 1 elements");
+			throw new IllegalArgumentException("array must have at least 1 element(s)");
 		}
-		
+
 		var result = new double[n];				
 		for(int i=0; i<n; i++) {
 			result[i] = callback.apply(gpspoints[i]);
 		}
-		
+
 		return result;
 	}	
+	
+	// map using callback, double[i] = (GPSPoint[i], GPSPoint[i + 1])	
 	public static double[] mapGpsPointPairsToDouble(GPSPoint[] gpspoints, MapGpsPointPairToDouble callback) {
 		int n = gpspoints.length - 1;
 		if(n + 1 < 2) {
-			throw new IllegalArgumentException("gpspoints must have at least 2 elements");
+			throw new IllegalArgumentException("array must have at least 2 element(s)");
 		}
-		
-		var result = new double[n];				
+
+		var result = new double[n];
 		for(int i=0; i<n; i++) {		
 			result[i] = callback.apply(gpspoints[i], gpspoints[i + 1]);
 		}

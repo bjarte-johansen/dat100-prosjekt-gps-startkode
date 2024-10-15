@@ -29,6 +29,8 @@ class GPSSpeedGraphRenderer
 
 	//
 	private GPSComputer gpscomputer;	
+	
+	// use our own graphData class
 	private DoubleArrayGraphRenderer.Data graphData;
 	
 	// declare rectangle to draw within
@@ -37,13 +39,12 @@ class GPSSpeedGraphRenderer
 	// progress indicators, may be null
 	public App.GPSUIProgressIndicator[] animatedProgressIndicators = null;
 	
+	//
 	public boolean resampleData = false;
 	
-	public boolean showSpeedAsColor = true;	
-	
-	public GPSSpeedGraphRenderer() 
+	public GPSSpeedGraphRenderer(GPSComputer computer) 
 	{
-		gpscomputer = new GPSComputer(App.gpsFilename);
+		gpscomputer = computer;
 
 		init();
 	}
@@ -54,10 +55,12 @@ class GPSSpeedGraphRenderer
 		var dataValues = gpscomputer.getSpeedValues();
 		
 		// create time-value series
-		var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
+		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
+		
+		//var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
 		for(int i=0; i<data.length; i++) {
-			data.times[i] = gpspoints[i].getTime();
-			data.values[i] = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
+			data[i].time = gpspoints[i].getTime();
+			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
 		}
 		
 		// resample timeseries to regularly spaced values		
@@ -144,8 +147,28 @@ class GPSSpeedGraphRenderer
 	{
 		// draw graph
         ctx.setStroke(new BasicStroke(1));
-        ctx.setColor(GPSUI.SpeedGraph.foregroundColor);        	        
-		DoubleArrayGraphRenderer.render(ctx, R, graphData);
+        ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
+               
+		DoubleArrayGraphRenderer.render(ctx, R, graphData, (pos) -> {
+			if(!GPSUI.Default.advancedColors) {
+				return;
+			}
+			
+			// colorizing is buggy and leftover from debugging, its kinda nice though
+			int intPos = (int)(pos * graphData.numValues);
+			double v0 = graphData.getValueAtIndexedPos(intPos);
+			double v1 = graphData.getValueAtIndexedPos((double) intPos + 1);
+			
+			double valueDelta = (v1 - v0);
+			double normaValueDelta = Math.abs(valueDelta) / graphData.max;
+			
+			// colorize acceleration/deceleration
+			if(valueDelta >= 0.0) {
+				ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor));
+			}else {
+				ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor));
+			}
+		});
 	}
 	
 	// render average speed indicator
