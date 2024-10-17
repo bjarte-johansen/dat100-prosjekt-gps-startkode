@@ -54,8 +54,8 @@ public class GPSUtils {
 		}
 
 		return result;
-	}	
-	
+	}
+
 	// map using callback, double[i] = (GPSPoint[i], GPSPoint[i + 1])	
 	public static double[] mapGpsPointPairsToDouble(GPSPoint[] gpspoints, MapGpsPointPairToDouble callback) {
 		int n = gpspoints.length - 1;
@@ -87,7 +87,7 @@ public class GPSUtils {
 		double c = compute_c(a);		
 		d = R * c;
 		
-		return d;
+		return Math.abs(d);
 	}
 	
 	private static double compute_a(double phi1, double phi2, double deltaphi, double deltadelta) {
@@ -111,9 +111,6 @@ public class GPSUtils {
 	
 	public static double speed(GPSPoint p1, GPSPoint p2) {
 		double dist = distance(p1, p2);	
-		if(dist < 0) {
-			throw new RuntimeException("blarh");
-		}
 		
 		long secs = timeBetweenPoints(p1, p2);		
 		
@@ -125,6 +122,8 @@ public class GPSUtils {
 	}
 
 	public static String formatIntTimeDigits(int digits) {
+		// return String.format("%02d", digits);
+
 		String s = String.valueOf(digits);
 		if(digits < 10)
 			s = "0" + s;
@@ -133,7 +132,7 @@ public class GPSUtils {
 	
 	public static String formatTime(int secs) {
 		String TIMESEP = ":";
-		
+
 		int h = secs / 3600;
 		int m = (secs % 3600) / 60;
 		int s = (secs % 60);

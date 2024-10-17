@@ -71,17 +71,13 @@ public class GPSComputer {
 	}
 	
 	private double computeTotalDistance() {
-		double distance = 0;
-		
-		int n = gpspoints.length - 1;
-		for(int i=0; i<n; i++) {			
-			distance += GPSUtils.distance(gpspoints[i], gpspoints[i + 1]); 
-		}
-		
-		return distance;
+		return DoubleArray.of(distanceValues_).sum();
 	}
 		
 	private double computeTotalElevation() {
+		//double[] elevationRange_ = DoubleArray.of(elevationValues_).minmax();
+		//return elevationRange_[1] - elevationRange_[0];
+
 		double elevation = 0;
 		int n = gpspoints.length - 1;
 		for(int i=0; i<n; i++) {
@@ -90,7 +86,7 @@ public class GPSComputer {
 			var e1 = gpspoints[i + 1].getElevation();
 			
 			// add positive elevation only
-			elevation += Math.max(0, e1 - e0);
+			elevation += Math.max(0.0, e1 - e0);
 		}		
 		return elevation;
 	}

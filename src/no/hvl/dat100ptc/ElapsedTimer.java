@@ -31,7 +31,7 @@ public class ElapsedTimer{
 		return elapsedMillis_;
 	}
 	public double elapsedTime() {
-		return 1.0 / elapsedMillis_;
+		return elapsedMillis_ / 1000.0;
 	}	
 	
 	public double unfilteredFramesPerSecond() {

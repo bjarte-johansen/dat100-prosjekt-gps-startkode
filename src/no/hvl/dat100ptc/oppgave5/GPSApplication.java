@@ -159,7 +159,7 @@ public class GPSApplication
                 	
                 	int newNumberOfRiders = GPSUI.Default.numberOfRiders + offset;
                 	
-                	newNumberOfRiders = Math.clamp(newNumberOfRiders, 1, 10000);
+                	newNumberOfRiders = Math.clamp(newNumberOfRiders, 1, 100);
                 	
                 	GPSUI.Default.numberOfRiders = newNumberOfRiders;
                 	

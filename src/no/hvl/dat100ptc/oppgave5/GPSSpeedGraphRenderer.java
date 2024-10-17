@@ -57,7 +57,6 @@ class GPSSpeedGraphRenderer
 		// create time-value series
 		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
 		
-		//var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
 		for(int i=0; i<data.length; i++) {
 			data[i].time = gpspoints[i].getTime();
 			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
@@ -65,20 +64,6 @@ class GPSSpeedGraphRenderer
 		
 		// resample timeseries to regularly spaced values		
 		double[] resampled = IrregularTimeValueSeriesResampler.resample(data, 600);
-		
-		/*
-		data.items[0] = (new double[] {0, 0});
-		data.items[1] = (new double[] {4, 1});
-		data.items[2] = (new double[] {5, 2});
-		data.items[3] = (new double[] {7, 3});
-		data.items[4] = (new double[] {15, 4});
-		data.items[5] = (new double[] {20, 5});
-		
-		var result = ResampleIrregularSamples.resample(data, 21);
-		for(int i=0; i<result.length; i++) {
-			System.out.printf("%2d -> %.2f\n", i, result[i]);
-		}
-		*/
 		
 		// create graph data for graph rendering
 		graphData = new DoubleArrayGraphRenderer.Data();

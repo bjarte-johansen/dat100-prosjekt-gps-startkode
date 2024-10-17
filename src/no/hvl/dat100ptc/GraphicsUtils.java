@@ -8,6 +8,12 @@ public class GraphicsUtils{
 	public static Color copyColor(Color c) {
 		return new Color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha());
 	}
+		
+	public Color createRandomGrayscaleColor() 
+	{
+		int v = (int)(Math.random()*255); 
+		return new Color(v, v, v);
+	}		
 
 	// create randomized color
 	public static Color createRandomColor() {

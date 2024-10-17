@@ -3,10 +3,11 @@ package no.hvl.dat100ptc;
 import no.hvl.dat100ptc.IrregularTimeValueSeriesResampler.DataPoint;
 
 import java.lang.reflect.Array;
+//import java.lang.SuppressWarnings;
 
 class ArrayUtils {
     public static <T> T[] createArray(Class<T> clazz, int size) {
-        @SuppressWarnings("unchecked")
+        //@SuppressWarnings("unchecked")
         T[] array = (T[]) Array.newInstance(clazz, size);
         
         try {

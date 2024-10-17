@@ -46,7 +46,6 @@ public class GPSElevationGraphRenderer
 		// create time-value series
 		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
 		
-		//var data = new IrregularTimeValueSeriesResampler.Data(dataValues.length);
 		for(int i=0; i<data.length; i++) {
 			data[i].time = gpspoints[i].getTime();
 			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];

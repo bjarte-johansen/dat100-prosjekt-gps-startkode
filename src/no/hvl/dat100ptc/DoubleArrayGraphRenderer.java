@@ -21,13 +21,15 @@ class DoubleArrayGraphData{
 	
 	// get interpolated value at pos, note that pos is [0.0 .. 1.0]
 	public double getValueAtNormalizedPos(double pos) {		
-		return LinearInterpolation.interpolate(pos, values, values.length);
+		return LinearInterpolation.interpolate(values, values.length, pos);
 	}
+	
+	// get interpolated value at pos, note that pos is [0.0 .. numValues - 1]
 	public double getValueAtIndexedPos(double pos) {
 		if(values.length == 0) {
 			throw new RuntimeException("array must have more than 0 elements");
 		}
-		return LinearInterpolation.interpolate(pos / values.length, values, values.length);
+		return LinearInterpolation.interpolate(values, values.length, pos / values.length);
 	}
 }
 
@@ -39,12 +41,12 @@ public class DoubleArrayGraphRenderer{
 	private DoubleArrayGraphRenderer() {}
 	
 	// get vertical scale
-	public static double getGraphVerticalScale(Data graphData, IntRectangle bounds) {
+	public static double getVerticalScale(Data graphData, IntRectangle bounds) {
 		return graphData.getNormalizationFactor() * bounds.getHeight() * 0.9;
 	}
 	
 	// get vertical value
-	public static double getGraphFloatValueAt(double pos, Data graphData) {
+	public static double getValueAt(double pos, Data graphData) {
 		return graphData.getValueAtNormalizedPos(pos);
 	}
 	
@@ -56,10 +58,10 @@ public class DoubleArrayGraphRenderer{
 		double val;		
 		double pos = 0.0;
 		double delta = 1.0 / bounds.width;
-		double verticalScaleFactor = getGraphVerticalScale(graphData, bounds);
+		double verticalScaleFactor = getVerticalScale(graphData, bounds);
 			
 		for(int i=0; i<bounds.width; i++) {
-			val = getGraphFloatValueAt(pos, graphData) * verticalScaleFactor;
+			val = getValueAt(pos, graphData) * verticalScaleFactor;
 			
 			int x = bounds.getMinX() + i;
 			int y = bounds.getMaxY() - (int) val;

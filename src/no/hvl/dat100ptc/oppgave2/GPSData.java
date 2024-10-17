@@ -31,11 +31,11 @@ public class GPSData {
 		GPSPoint gpspoint;
 		
 		try {
-			gpspoint = GPSPoint.convert(time, latitude, longitude, elevation);
+			// convert values to GPSPoint
+			gpspoint = GPSPoint.convert(time, latitude, longitude, elevation);			
 			
-			insertGPS(gpspoint);
-			
-			return true;
+			// return status of insertGPS
+			return insertGPS(gpspoint);			
 		}catch(Exception e){
 			System.out.println("Exception");
 			System.out.println(e.getMessage());
@@ -46,10 +46,11 @@ public class GPSData {
 
 	public void print() {
 		System.out.println("====== GPS Data - START ======");
-		int n = antall;
-		for(int i=0; i<n; i++) {
+
+		for(int i=0; i<antall; i++) {
 			System.out.println(gpspoints[i]);
 		}
+		
 		System.out.println("====== GPS Data - SLUTT ======");
 	}
 }

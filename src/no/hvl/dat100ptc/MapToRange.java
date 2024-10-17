@@ -1,5 +1,5 @@
 package no.hvl.dat100ptc;
-
+/*
 public class MapToRange{
 	public static double mapToRange(double value, double minInput, double maxInput, double minOutput, double maxOutput) {
 		if(maxInput == minInput) {
@@ -12,3 +12,4 @@ public class MapToRange{
 		return minOutput + ((value - minInput) / inputRange) * outputRange;
 	}
 }
+*/

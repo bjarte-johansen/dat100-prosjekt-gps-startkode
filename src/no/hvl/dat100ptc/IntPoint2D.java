@@ -21,6 +21,11 @@ public class IntPoint2D{
 	public static IntPoint2D of(int x, int y) { return new IntPoint2D(x,y); }
 	public static IntPoint2D of(double x, double y) { return new IntPoint2D(x,y); }
 	
+	public void assign(IntPoint2D other) {
+		x = other.x;
+		y = other.y;
+	}
+	
 	public int getX() { return x; }
 	public int getY() { return y; }
 	

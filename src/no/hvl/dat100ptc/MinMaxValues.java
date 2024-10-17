@@ -1,5 +1,5 @@
 package no.hvl.dat100ptc;
-
+/*
 public class MinMaxValues {
 	public static class PrimitiveDouble{
 		public double min;
@@ -67,3 +67,4 @@ public class MinMaxValues {
 		}
 	}	
 }
+*/
