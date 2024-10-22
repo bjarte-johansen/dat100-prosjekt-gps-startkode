@@ -39,6 +39,7 @@ class GPSUI{
 		
 		// progress
 		static Color progressIndicatorColor = ColorUtils.niceBlue;
+		static Color progressIndicatorStrokeColor = Color.black;
 		static int progressIndicatorSize = 7;	
 		
 		// text

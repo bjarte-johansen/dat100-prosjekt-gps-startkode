@@ -1,3 +1,10 @@
+/*
+ * 
+ * this application is fullfilled thru GPSApplication.java in oppgave 5
+ * therefore we skip it alltogether
+ *
+ */
+
 package no.hvl.dat100ptc.oppgave5;
 
 import javax.swing.JOptionPane;

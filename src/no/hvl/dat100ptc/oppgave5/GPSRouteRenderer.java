@@ -1,3 +1,10 @@
+/*
+ * 
+ * this application is fullfilled thru GPSApplication.java in oppgave 5
+ * therefore we skip it alltogether
+ *
+ */
+
 package no.hvl.dat100ptc.oppgave5;
 
 import java.awt.BasicStroke;
@@ -41,8 +48,9 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 
 	public double currentDistance;
 	private double segmentDistance;
-	private double segmentTimeDelta;
+	private double segmentTime;
 	private double segmentDistanceAccumulator;
+	private double segmentTimeAccumulator;
 	
 	//private double startTime;
 	public double currentTime;
@@ -50,9 +58,6 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 	public double segmentSpeed;
 	
 	public double animationSpeed = 70.0;
-	
-	private GPSPoint segmentPointA;
-	private GPSPoint segmentPointB;
 					
 	AnimatedProgressIndicator(GPSComputer comp, GPSRouteRenderer renderer){
 		gpscomputer = comp;
@@ -68,26 +73,26 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 		recalc();
 	}
 	
-	private double timeSinceRouteStart(double time) {
-		return time - gpspoints[0].getTime();
-	}
-	
 	void recalc() {
 		if(segmentIndex + 1 >= gpspoints.length) {
+			// reset to start
 			segmentIndex = 0;
+			
 			currentTime = 0.0;
 			currentDistance = 0.0;
+			
+			segmentTimeAccumulator = 0.0;			
 			segmentDistanceAccumulator = 0.0;
 		}
 
 		// store refs to gpspoints
-		segmentPointA = gpspoints[segmentIndex];
-		segmentPointB = gpspoints[segmentIndex + 1];
+		GPSPoint segmentPointA = gpspoints[segmentIndex];
+		GPSPoint segmentPointB = gpspoints[segmentIndex + 1];
 						
 		// compute variables we need
 		segmentDistance = GPSUtils.distance(segmentPointA, segmentPointB);
 		segmentSpeed = GPSUtils.speed(segmentPointA, segmentPointB);
-		segmentTimeDelta = GPSUtils.timeBetweenPoints(segmentPointA, segmentPointB);
+		segmentTime = GPSUtils.timeBetweenPoints(segmentPointA, segmentPointB);
 		
 		// map segment points to screenStart and screenEnd
 		gpsrenderer.gpsPointToDrawSpace(segmentPointA, screenStart);
@@ -98,16 +103,21 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 	}
 	
 	void advance(double elapsedFrameTime) {
+		// advance position
 		pos += delta * elapsedFrameTime * animationSpeed;
 			
-		// compute current time
-		currentTime = timeSinceRouteStart(segmentPointA.getTime() + segmentTimeDelta * pos);
+		// compute current time & distance
+		currentTime = segmentTimeAccumulator + (segmentTime * pos);
 		currentDistance = segmentDistanceAccumulator + (segmentDistance * pos);
 		
-		if(pos >= 1.0) {
-			//currentDistance += segmentDistance;
+		
+		// switch segment if needed
+		if(pos >= 1.0) {	
+			segmentTimeAccumulator += segmentTime;			
 			segmentDistanceAccumulator += segmentDistance;
+			
 			segmentIndex++;
+			
 			recalc();
 		}
 	}
@@ -121,7 +131,7 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 		ctx.setColor(getTrackingColor());
 		GraphicsUtils.fillCircle(ctx, x, y, GPSUI.Route.progressIndicatorSize);
 		
-		ctx.setColor(Color.black);
+		ctx.setColor(GPSUI.Route.progressIndicatorStrokeColor);
 		GraphicsUtils.drawCircle(ctx, x, y, GPSUI.Route.progressIndicatorSize);
 	}
 	
@@ -187,8 +197,6 @@ class GPSRouteRenderer{
 			animatedProgressIndicator[i].animationSpeed = currentAnimationSpeed;
 			animatedProgressIndicator[i].setTrackingColor(GraphicsUtils.createRandomColor());
 			
-			//System.out.println(currentAnimationSpeed);
-			
 			currentAnimationSpeed += animationSpeedOffset + Math.random() * animationSpeedRandomAmount;			
 		}
 		
@@ -209,12 +217,15 @@ class GPSRouteRenderer{
 			GPSUI.Route.routeDownhillColor;
 	}
 
+	@Deprecated
 	public IntPoint2D gpsPointToDrawSpace(GPSPoint p) {
-		System.out.println("old conversion");
+		throw new RuntimeException("deprecated");
+		/*
 		return new IntPoint2D(
 			R.getMinX() + gpsPointMapper.mapX(p.getLongitude()),					
 			R.getMaxY() - gpsPointMapper.mapY(p.getLatitude())
-			);		
+			);
+		*/		
 	}
 	public IntPoint2D gpsPointToDrawSpace(GPSPoint p, IntPoint2D dest) {
 		dest.x = R.getMinX() + gpsPointMapper.mapX(p.getLongitude());					
@@ -246,7 +257,7 @@ class GPSRouteRenderer{
 		renderRouteWaypoints(ctx);		
 
 		// render endpoints		
-		showRouteEndPoints(ctx);			
+		renderRouteEndPoints(ctx);			
 
 		// render stats		
 		renderStatistics(ctx);
@@ -259,7 +270,7 @@ class GPSRouteRenderer{
 	}
 
 	// 
-	public void showRouteEndPoints(Graphics2D ctx) {
+	public void renderRouteEndPoints(Graphics2D ctx) {
 		IntPoint2D p = new IntPoint2D();
 		
 		// render endpoints
@@ -359,14 +370,15 @@ class GPSRouteRenderer{
 		}
 
 		String msg;
+		int selectedRiderIndex = animatedProgressIndicator.length - 1;
 		
-		msg = GPSComputer.formatStatsString("Speed", animatedProgressIndicator[0].segmentSpeed * 3.6, "km/t");
+		msg = GPSComputer.formatStatsString("Speed", animatedProgressIndicator[selectedRiderIndex].segmentSpeed * 3.6, "km/t");
 		renderStatisticsLine(ctx, lines.length, msg);
 
-		msg = GPSComputer.formatStatsString("Distance", animatedProgressIndicator[0].currentDistance / 1000, "km");
+		msg = GPSComputer.formatStatsString("Distance", animatedProgressIndicator[selectedRiderIndex].currentDistance / 1000, "km");
 		renderStatisticsLine(ctx, lines.length + 1, msg);		
 		
-		msg = GPSComputer.formatStatsString("Time", GPSUtils.formatTime((int) animatedProgressIndicator[0].currentTime), "");
+		msg = GPSComputer.formatStatsString("Time", GPSUtils.formatTime((int) animatedProgressIndicator[selectedRiderIndex].currentTime), "");
 		renderStatisticsLine(ctx, lines.length + 2, msg);		
 		
 		msg = GPSComputer.formatStatsString("Riders", String.format("%s", animatedProgressIndicator.length), "");

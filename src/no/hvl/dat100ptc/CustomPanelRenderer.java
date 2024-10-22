@@ -41,16 +41,7 @@ public class CustomPanelRenderer extends JPanel {
         timer.start();       
     }
     
-
-    // Override the getMaximumSize() to restrict the maximum height
-    @Override
-    public Dimension getMaximumSize() {
-        Dimension maxSize = super.getMaximumSize();
-//        maxSize.height = 150; // Set maximum height to 150 pixels
-        return maxSize;
-    }   
-
-    
+   
     // set antialiasing
     public void setAntialiasing(boolean value) {
     	setAntialiasing(value, RenderingHints.VALUE_RENDER_QUALITY); 
@@ -60,16 +51,6 @@ public class CustomPanelRenderer extends JPanel {
 		renderingHints_.put(RenderingHints.KEY_ANTIALIASING, state);    	
     	renderingHints_.put(RenderingHints.KEY_RENDERING, hint);
     }
-    
-    /*
-    // get / set buffer width/height
-    public int getBufferWidth() {
-    	return buffer.getWidth();
-    }
-    public int getBufferHeight() {
-    	return buffer.getHeight();
-    }
-    */
     
     public void setBufferSize(int width, int height) {
         buffer = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
