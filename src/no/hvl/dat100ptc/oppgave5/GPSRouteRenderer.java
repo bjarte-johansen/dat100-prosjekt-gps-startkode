@@ -52,7 +52,6 @@ class AnimatedProgressIndicator extends App.GPSUIProgressIndicator{
 	private double segmentDistanceAccumulator;
 	private double segmentTimeAccumulator;
 	
-	//private double startTime;
 	public double currentTime;
 	
 	public double segmentSpeed;
