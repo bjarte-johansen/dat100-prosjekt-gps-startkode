@@ -57,6 +57,10 @@ public class GPSDataFileReader {
 				line = br.readLine();
 				i++;
 			}
+			
+			if (gpsdata.isSorted() == false) {
+				JOptionPane.showMessageDialog(null, "GPS data er ikke sortert");
+			}			
 
 		} catch (FileNotFoundException e) {
 		    JOptionPane.showMessageDialog(null,"GPS filen " + filename + "finnes ikke");
@@ -73,6 +77,8 @@ public class GPSDataFileReader {
 				}
 			}
 		}
+		
+
 
 		return gpsdata;
 	}

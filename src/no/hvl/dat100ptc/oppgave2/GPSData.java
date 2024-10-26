@@ -26,6 +26,16 @@ public class GPSData {
 		
 		return false;
 	}
+	
+	public boolean isSorted() {
+		for (int i = 0; i < antall - 1; i++) {
+			if (gpspoints[i].getTime() >= gpspoints[i + 1].getTime()) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	public boolean insert(String time, String latitude, String longitude, String elevation) {
 		GPSPoint gpspoint;
