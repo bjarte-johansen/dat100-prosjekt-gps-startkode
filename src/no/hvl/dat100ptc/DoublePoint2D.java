@@ -13,11 +13,11 @@ public class DoublePoint2D{
 		this.y = other.y;
 	}	
 	
-	int getXAsInt() { return (int) x; }
-	int getYAsInt() { return (int) y; }
-	
 	double getX() { return x; }
 	double getY() { return y; }
+	
+	void setX(double x) { this.x = x; }
+	void setY(double y) { this.y = y; }
 	
 	public IntPoint2D toIntPoint() {
 		return new IntPoint2D(x, y);

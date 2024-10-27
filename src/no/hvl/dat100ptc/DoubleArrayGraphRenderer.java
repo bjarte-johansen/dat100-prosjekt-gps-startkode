@@ -11,6 +11,31 @@ class DoubleArrayGraphData{
 	public double min;
 	public double max;
 	
+	/*
+	// find max deltavalue
+	public double findMaxDeltaValue() {
+		int n = numValues;
+		double found = 0.0;   		
+		double delta;		  
+		double cur;
+		double prev;
+		
+		if(n > 0) {
+			prev = values[0];
+	        for(int i=0; i<n-1; i++) {
+	        	cur = values[i + 1];
+	        	delta = cur - prev;
+	        	
+	        	if(delta > found) 
+	        		found = delta;
+	        	
+	        	prev = cur;	        	
+	        }
+		}
+        return found;
+	}
+	*/
+	
 	public double getNormalizationFactor() {
 		if(Math.abs(max) < 1e-10) {
 			throw new RuntimeException("max must be greater than 1e-10");
@@ -20,7 +45,11 @@ class DoubleArrayGraphData{
 	}
 	
 	// get interpolated value at pos, note that pos is [0.0 .. 1.0]
-	public double getValueAtNormalizedPos(double pos) {		
+	public double getValueAtNormalizedPos(double pos) {
+		if(values.length == 0) {
+			throw new RuntimeException("array must have more than 0 elements");
+		}
+		
 		return LinearInterpolation.interpolate(values, values.length, pos);
 	}
 	
@@ -30,6 +59,22 @@ class DoubleArrayGraphData{
 			throw new RuntimeException("array must have more than 0 elements");
 		}
 		return LinearInterpolation.interpolate(values, values.length, pos / values.length);
+	}
+	
+	public double safeGetValueAtOffset(int pos) {
+		if(values.length == 0) {
+			return 0.0;
+		}
+		
+		if (pos < 0) {
+			return values[0];
+		}
+		
+		if (pos >= values.length) {
+			return values[values.length - 1];
+		}
+		
+		return values[pos];
 	}
 }
 

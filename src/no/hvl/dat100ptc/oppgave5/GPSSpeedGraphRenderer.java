@@ -24,11 +24,27 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.util.function.DoubleConsumer;
 
 
 /*
  * 
  */
+
+class GPSPointDataValueResampler{
+	public static double[] getResampledValues(GPSPoint[] gpspoints, double[] dataValues) {
+		// create time-value series
+		var data = SmoothTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
+		
+		for(int i=0; i<data.length; i++) {
+			data[i].time = gpspoints[i].getTime();
+			data[i].value = dataValues[i];
+		}
+		
+		// resample timeseries to regularly spaced values		
+		return SmoothTimeValueSeriesResampler.resample(data, 600);
+	}	
+}
 
 class GPSSpeedGraphRenderer 
 {
@@ -56,25 +72,18 @@ class GPSSpeedGraphRenderer
 		init();
 	}
 	
-	public void init() 
+	public void init()
 	{
 		var gpspoints = gpscomputer.getGPSPoints();		
 		var dataValues = gpscomputer.getSpeedValues();
 		
-		// create time-value series
-		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
-		
-		for(int i=0; i<data.length; i++) {
-			data[i].time = gpspoints[i].getTime();
-			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
+		if(GPSUI.RESAMPLE_TIME_SERIES) {
+			dataValues = GPSPointDataValueResampler.getResampledValues(gpspoints, dataValues);
 		}
-		
-		// resample timeseries to regularly spaced values		
-		double[] resampled = IrregularTimeValueSeriesResampler.resample(data, 600);
 		
 		// create graph data for graph rendering
 		graphData = new DoubleArrayGraphRenderer.Data();
-		graphData.values = resampleData ? resampled : dataValues;
+		graphData.values = dataValues;
 		graphData.numValues = graphData.values.length;
 		graphData.min = gpscomputer.getMinSpeed();
 		graphData.max = gpscomputer.getMaxSpeed();
@@ -136,31 +145,40 @@ class GPSSpeedGraphRenderer
 	
 	// render graph
 	private void renderGraph(Graphics2D ctx) 
-	{
+	{		
 		// draw graph
         ctx.setStroke(new BasicStroke(1));
         ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
+        
+        // [0]: 1 = up, 0 = down		
+		int[] capturedDirection = {-1};
+
+		DoubleConsumer beforeRenderColumn = null;
+		if(GPSUI.Default.advancedColors) { 
+			beforeRenderColumn = (pos) -> {
+				// colorizing is buggy and leftover from debugging, its kinda nice though
+				int intPos = (int)(pos * graphData.numValues);
+				double v0 = graphData.safeGetValueAtOffset(intPos);
+				double v1 = graphData.safeGetValueAtOffset(intPos + 1);
+				
+				double valueDelta = (v1 - v0);			
+	
+				// only change direction if we valueDelta <> 0.0
+				if(Math.abs(valueDelta) > 1e-6 || capturedDirection[0] == -1) {
+					capturedDirection[0] = (valueDelta >= 0.0) ? 1 : 0;
+	
+					// colorize acceleration/deceleration
+					double normaValueDelta = Math.abs(valueDelta) / graphData.max;				
+					if(capturedDirection[0] == 0) {
+						ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 20, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor));
+					}else {
+						ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 20, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor));
+					}
+				}
+			};
+		}      
                
-		DoubleArrayGraphRenderer.render(ctx, R, graphData, (pos) -> {
-			if(!GPSUI.Default.advancedColors) {
-				return;
-			}
-			
-			// colorizing is buggy and leftover from debugging, its kinda nice though
-			int intPos = (int)(pos * graphData.numValues);
-			double v0 = graphData.getValueAtIndexedPos(intPos);
-			double v1 = graphData.getValueAtIndexedPos((double) intPos + 1);
-			
-			double valueDelta = (v1 - v0);
-			double normaValueDelta = Math.abs(valueDelta) / graphData.max;
-			
-			// colorize acceleration/deceleration
-			if(valueDelta >= 0.0) {
-				ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor));
-			}else {
-				ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor));
-			}
-		});
+		DoubleArrayGraphRenderer.render(ctx, R, graphData, beforeRenderColumn);
 	}
 	
 	// render average speed indicator

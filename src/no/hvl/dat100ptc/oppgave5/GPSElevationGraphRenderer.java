@@ -14,6 +14,7 @@ import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
+import java.util.function.DoubleConsumer;
 
 import easygraphics.EasyGraphics;
 import no.hvl.dat100ptc.oppgave1.GPSPoint;
@@ -50,20 +51,13 @@ public class GPSElevationGraphRenderer
 		var gpspoints = gpscomputer.getGPSPoints();		
 		var dataValues = gpscomputer.getElevationValues();
 
-		// create time-value series
-		var data = IrregularTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
-		
-		for(int i=0; i<data.length; i++) {
-			data[i].time = gpspoints[i].getTime();
-			data[i].value = (i < dataValues.length) ? dataValues[i] : dataValues[dataValues.length - 1];
+		if(GPSUI.RESAMPLE_TIME_SERIES) {
+			dataValues = GPSPointDataValueResampler.getResampledValues(gpspoints, dataValues);
 		}
-
-		// resample timeseries to regularly spaced values
-		double[] resampled = IrregularTimeValueSeriesResampler.resample(data, 600);
 
 		// create graph data for graph rendering		
 		graphData = new DoubleArrayGraphRenderer.Data();
-		graphData.values = resampleData ? resampled : gpscomputer.getElevationValues();
+		graphData.values = dataValues;
 		graphData.numValues = graphData.values.length;
 		graphData.min = gpscomputer.getMinElevation();
 		graphData.max = gpscomputer.getMaxElevation();
@@ -78,7 +72,7 @@ public class GPSElevationGraphRenderer
 	}
 		
 	public void render(Graphics2D ctx, int w, int h) 
-	{
+	{		
 		// clear background
 		ctx.setColor(GPSUI.Default.bgColor);
 		ctx.fillRect(0, 0, w, h);
@@ -92,27 +86,36 @@ public class GPSElevationGraphRenderer
 		// render graph
         ctx.setStroke(new BasicStroke(1));
         ctx.setColor(GPSUI.SpeedGraph.foregroundColor);
+        
+        // [0]: 1 = up, 0 = down
+        int[] capturedDirection = {-1};
 		
-		DoubleArrayGraphRenderer.render(ctx, R, graphData, (pos) -> {
-			if(!GPSUI.Default.advancedColors) {
-				return;
-			}
-			
-			// colorizing is buggy and leftover from debugging, its kinda nice though
-			int intPos = (int)(pos * graphData.numValues);
-			double v0 = graphData.getValueAtIndexedPos(intPos);
-			double v1 = graphData.getValueAtIndexedPos((double) intPos + 1);
-			
-			double valueDelta = (v1 - v0);
-			double normValueDelta = (Math.abs(valueDelta) / graphData.max) * 21;
-			
-			// colorize according to acceleration
-			if((valueDelta >= 0.0)) {
-				ctx.setColor(GraphicsUtils.lerpColorRGBA(1 - normValueDelta, GPSUI.SpeedGraph.acceleratingColor1, GPSUI.SpeedGraph.acceleratingColor2));
-			}else {
-				ctx.setColor(GraphicsUtils.lerpColorRGBA(1 - normValueDelta, GPSUI.SpeedGraph.deceleratingColor1, GPSUI.SpeedGraph.deceleratingColor2));
-			}
-		});
+		DoubleConsumer beforeRenderColumn = null;
+		if(GPSUI.Default.advancedColors) { 
+			beforeRenderColumn = (pos) -> {
+				// colorizing is buggy and leftover from debugging, its kinda nice though
+				int intPos = (int)(pos * graphData.numValues);
+				double v0 = graphData.safeGetValueAtOffset(intPos);
+				double v1 = graphData.safeGetValueAtOffset(intPos + 1);
+				
+				double valueDelta = (v1 - v0);			
+	
+				// only change direction if we valueDelta <> 0.0
+				if(Math.abs(valueDelta) > 1e-6 || capturedDirection[0] == -1) {
+					capturedDirection[0] = (valueDelta >= 0.0) ? 1 : 0;
+	
+					// colorize acceleration/deceleration
+					double normaValueDelta = Math.abs(valueDelta) / graphData.max;				
+					if(capturedDirection[0] == 0) {
+						ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondDownhillColor, GPSUI.Route.routeDownhillColor));
+					}else {
+						ctx.setColor(GraphicsUtils.lerpColorRGBA(normaValueDelta * 30, GPSUI.Route.routeSecondUphillColor, GPSUI.Route.routeUphillColor));
+					}
+				}
+			};
+		}
+		
+		DoubleArrayGraphRenderer.render(ctx, R, graphData, beforeRenderColumn);
 		
 		// render progress indicators
 		renderAnimatedProgressIndicators(ctx);	

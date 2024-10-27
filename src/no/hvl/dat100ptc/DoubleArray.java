@@ -54,6 +54,11 @@ public class DoubleArray{
 			throw new IllegalArgumentException("array must be non-null and non-empty");
 		}
 	}
+	protected void checkMinSize(int minSize) {
+		if (arr.length < minSize) {
+			throw new IllegalArgumentException("array must have at least " + minSize + " elements");
+		}
+	}
 	
 	// set/get value
 	public double getValue(int index) {
@@ -185,3 +190,90 @@ public class DoubleArray{
 		return sum() / size();
 	}	
 }
+
+/*
+// we extend doublearray just to get the check* and size methods
+class DoubleArrayDeltaUtils extends DoubleArray{
+	public DoubleArrayDeltaUtils(double[] arr) {
+		super(arr);
+	}
+	
+	// find max deltavalue
+	public double maxdelta() {
+		checkNonNull();
+		checkMinSize(2);
+	
+		int n = size();
+		double found = arr[1] - arr[0];   		
+		double delta;		  
+		double cur;
+		double prev = arr[0];
+		
+        for(int i=1; i<n; i++) {
+        	cur = arr[i];
+        	delta = cur - prev;
+        	
+        	if(delta > found) {
+        		found = delta; 
+        	}
+        	
+        	prev = cur;	        	
+        }
+        
+        return found;
+	}
+	
+	public double mindelta(){
+		checkNonNull();
+		checkMinSize(2);		
+	
+		int n = size();
+		double found = arr[1] - arr[0];   		
+		double delta;		  
+		double cur;
+		double prev = arr[0];
+		
+        for(int i=1; i<n; i++) {
+        	cur = arr[i];
+        	delta = cur - prev;
+        	
+        	if(delta < found) {
+        		found = delta; 
+        	}
+        	
+        	prev = cur;	        	
+        }
+        
+        return found;
+	}
+	
+	public double[] minmaxdelta() {
+	    checkNonNull();
+		checkMinSize(2);	    
+	
+		int n = size();
+		double delta = arr[1] - arr[0]
+		double foundMin = delta;
+		double foundMax = delta;  
+		double cur;
+		double prev = arr[0];
+		
+        for(int i=1; i<n; i++) {
+        	cur = arr[i];
+        	delta = cur - prev;
+        	
+        	if(delta > foundMax) {
+        		foundMax = delta; 
+        	}
+        	
+        	if(delta < foundMin) {
+        		foundMin = delta; 
+        	}
+        	
+        	prev = cur;	        	
+        }
+        
+        return (new double[] {foundMin, foundMax});
+	}
+}
+*/

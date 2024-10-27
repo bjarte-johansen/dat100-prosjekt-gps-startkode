@@ -7,6 +7,8 @@ import no.hvl.dat100ptc.ColorUtils;
 import no.hvl.dat100ptc.GraphicsUtils;
 
 class GPSUI{
+	static boolean RESAMPLE_TIME_SERIES = true;
+	
 	public class Default{
 		
 		static Color componentBorderColor = Color.decode("#CCCCCC");
@@ -72,5 +74,5 @@ class GPSUI{
 		
 		static int progressIndicatorSize = SpeedGraph.progressIndicatorSize;
 		static Color progressIndicatorColor = GraphicsUtils.copyColor(SpeedGraph.progressIndicatorColor);		
-	}	
+	}
 }

@@ -3,6 +3,8 @@ package no.hvl.dat100ptc;
 import java.awt.Color;
 
 public class ColorUtils{
+	private ColorUtils() {}
+	
 	public static final Color red = new Color(255,0,0);
 	public static final Color green = new Color(0,255,0);
 	public static final Color blue = new Color(0,0,255);

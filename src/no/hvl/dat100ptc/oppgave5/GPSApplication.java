@@ -21,6 +21,8 @@ import javax.swing.border.EmptyBorder;
 
 import no.hvl.dat100ptc.App;
 import no.hvl.dat100ptc.CustomPanelRenderer;
+import no.hvl.dat100ptc.SmoothTimeValueSeriesResampler;
+import no.hvl.dat100ptc.oppgave1.GPSPoint;
 import no.hvl.dat100ptc.oppgave4.GPSComputer;
 
 
@@ -30,6 +32,31 @@ import no.hvl.dat100ptc.oppgave4.GPSComputer;
  * - Additional classes are GPSApplication and GPSUI which are in no.hvl.dat100ptc.oppgave5
  * - Oppgave 5 and 6 are intertwined
  */
+
+/*
+ * Resampling with constant time intervals: 
+ * we have opted for smooth resampling and therefore are not collecting max values
+ * and replacing the interpolated value with it. This is not the most accurate
+ * method but it is the most simple and efficient, and it reduces plateaus that the m
+ * max function tends to introduce (blocks). The idea is that absolute max values are 
+ * not necessary in a GPS fitness tracker and that the interface should be as smooth as 
+ * possible.
+ */
+
+class ResampledGPSPointsHelper{
+	public double[] resample(GPSPoint[] gpspoints, double[] dataValues) {
+		// create time-value series
+		var data = SmoothTimeValueSeriesResampler.DataPoint.createArray(dataValues.length);
+		
+		for(int i=0; i<data.length; i++) {
+			data[i].time = gpspoints[i].getTime();
+			data[i].value = dataValues[i];
+		}
+		
+		// resample timeseries to regularly spaced values		
+		return SmoothTimeValueSeriesResampler.resample(data, 600);
+	}
+}
 
 public class GPSApplication 
 {
@@ -67,15 +94,12 @@ public class GPSApplication
         JLabel label = new JLabel(message);
         label.setFont(new Font("Verdana", Font.PLAIN, 14));  // Set font size as needed
         label.setForeground(c);
-        Dimension labelSize = label.getPreferredSize();
-        labelSize.width = 1920;
-        labelSize.height = 20;
 
         // Add components
         innerBox.add(label);
         outerBox.add(innerBox, BorderLayout.CENTER);
-        
-        setPanelAllSizes(outerBox, labelSize);
+
+        setPanelAllSizes(outerBox, new Dimension(1920, 20));
                 
         return outerBox;
 	}
@@ -94,7 +118,7 @@ public class GPSApplication
 		 * - [+] add 5 riders, 
 		 * - [-] remove 5 riders
 		 * 
-		 * rytter som vises på display er den seineste, som ligger i animatedProgressIndicators[0]
+		 * rytter som vises på display er den raskeste, som ligger i animatedProgressIndicators[:last-index]
 		 * 
 		 * vi har kokt alt sammen til et enkelt vindu og viser alt samtidig siden dette oppfyller
 		 * målene med de forskjellige oppgavene. det er ingen poeng i å vise speedgraph i eget
@@ -121,8 +145,8 @@ public class GPSApplication
 		elevationRenderer = new GPSElevationGraphRenderer(sharedGpsComputer);
 		routeRenderer = new GPSRouteRenderer(sharedGpsComputer);
 		
-		System.out.println(Arrays.toString(sharedGpsComputer.getGPSPoints()));
-		System.out.println(Arrays.toString(sharedGpsComputer.getSpeedValues()));		
+		//System.out.println(Arrays.toString(sharedGpsComputer.getGPSPoints()));
+		//System.out.println(Arrays.toString(sharedGpsComputer.getSpeedValues()));		
 		
 		// create window
         JFrame frame = new JFrame("GPS Fitness Tracker");
@@ -140,10 +164,9 @@ public class GPSApplication
                 
                 if(ch == 't') {
                 	// resample data for regular/irregular time intervals
-                	speedRenderer.resampleData = !speedRenderer.resampleData;
-                	speedRenderer.init();
+                	GPSUI.RESAMPLE_TIME_SERIES = !GPSUI.RESAMPLE_TIME_SERIES;
                 	
-                	elevationRenderer.resampleData = !elevationRenderer.resampleData;
+                	speedRenderer.init();               	
                 	elevationRenderer.init();
                 }
                 

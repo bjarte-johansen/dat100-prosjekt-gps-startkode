@@ -178,7 +178,7 @@ class GPSRouteRenderer{
 	}
 	
 	public void init() {
-		System.out.println("Initializing GPSRouterenderer, " + GPSUI.Default.numberOfRiders + " riders");
+		//System.out.println("Initializing GPSRouterenderer, " + GPSUI.Default.numberOfRiders + " riders");
 		
 		// update R (our bounds)
 		R = new IntRectangle(MARGIN, MARGIN, MAPXSIZE, MAPYSIZE);
